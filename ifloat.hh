@@ -61,8 +61,6 @@ public:
 */
 
   T e[2];
-  
-  inline DUInt<T,bits>& divq(const DUInt<T,bits>& src, const int& s);
 };
 
 template <typename T, int bits> inline DUInt<T,bits>::DUInt() {
@@ -195,63 +193,61 @@ template <typename T, int bits> inline DUInt<T,bits>  DUInt<T,bits>::operator / 
 template <typename T, int bits> inline DUInt<T,bits>& DUInt<T,bits>::operator /= (const DUInt<T,bits>& src) {
   static const auto hbits(bits >> 1);
   static const auto lmask((T(1) << hbits) - T(1));
-  int s(0);
+  if(! src)
+    throw "Zero division";
+  if(! *this)
+    return *this;
+  int shift(0);
   if(! src.e[1]) {
     if(! src.e[0])
-      throw "Zero division";
+      return *this;
     for(int i = 0; i < bits; i ++)
-      if(src.e[0] & (T(1) << (bits - i - 1))) {
-        s = bits - i - 1;
-        break;
-      }
-    if(hbits <= s)
-      goto m2;
-    return divq(src, s);
+      if(int(src.e[0] & (T(1) << i)))
+        shift = i;
+  } else {
+    for(int i = 0; i < bits; i ++)
+      if(int(src.e[1] & (T(1) << i)))
+        shift = i + bits;
   }
-  for(int i = 0; i < bits; i ++)
-    if(src.e[1] & (T(1) << (bits - i - 1))) {
-      s = bits * 2 - i - 1;
+  const auto dblocks(shift / hbits + 1);
+  const auto lshift(dblocks * hbits - shift - 1);
+  assert(0 <= lshift && lshift < hbits);
+  const auto dd(src << lshift);
+  T de[dblocks];
+  for(int i = 0; i < dblocks; i ++)
+    de[i] = i & 1 ? dd.e[i >> 1] >> hbits : dd.e[i >> 1] & lmask;
+  // N.B.
+  //   block division with better condition.
+  //   de[0] ... de[n], de[n] = 0...1..., each de uses half of space.
+  //                                ^ hbits - 1
+  //   res = *this / (dd == de[])
+  auto res(src ^ src);
+  auto r(e[0] ^ e[0]);
+  for(int i = 2; 0 <= i; i --) {
+    switch(i) {
+    case 0:
+      r =  e[0];
       break;
+    case 1:
+      r = (e[0] >> hbits) | (e[1] << hbits);
+      break;
+    case 2:
+      r =  e[1];
+      break;
+    default:
+      ;
     }
- m2:
-  auto works(src);
-  auto res(works ^ works);
-  for( ; 0 < s && ! (!*this) && ! (! works); s -= hbits) {
-    const auto denom((works << s) >> (bits + hbits + 1));
-          auto divisor(*this);
-    divisor.divq(denom, hbits - 1);
-    res   += divisor << (bits + hbits + 1 - s);
-    *this -= divisor * denom;
-    works -= denom << (bits + hbits + 1 - s);
+    // N.B.
+    //   d(0)  := original.
+    //   d(k+1) = (d << (hbits * i)) * dd + r + d(k).
+    // debug here: const auto d(r / (dd == de));
+    const auto div(DUInt<T,bits>(d) << (hbits * i));
+    *this -= div * dd;
+    res   += div;
   }
-  return *this = (res <<= s);
-}
-
-template <typename T, int bits> inline DUInt<T,bits>& DUInt<T,bits>::divq(const DUInt<T,bits>& src, const int& s) {
-  static const auto hbits(bits >> 1);
-  static const auto lmask((T(1) << hbits) - T(1));
-  const auto ss(hbits - s - 1);
-  assert(0 <= ss && ! src.e[1] && ! (src.e[0] & (- T(1) - lmask)));
-  const auto div(src.e[0] << ss);
-  const auto d0(e[1] / div);
-        auto r(e[1] - d0 * div);
-  const auto e0(e[0]);
-  e[1]    = d0;
-  e[0]   ^= e[0];
-  r     <<= hbits;
-  r      |= e0 >> hbits;
-  const auto d1(r / div);
-  *this  += DUInt<T,bits>(d1) << hbits;
-  r       = r - d1 * div;
-  r     <<= hbits;
-  r      |= e0 & lmask;
-  const auto d2(r / div);
-  *this  += DUInt<T,bits>(d2);
-  *this <<= ss;
-  r       = r - d2 * div;
-  r     <<= ss;
-  *this  += DUInt<T,bits>(r / div);
-  return *this;
+  r   <<= lshift;
+  res <<= lshift;
+  return *this = (res += DUInt<T,bits>(r / (de[dblocks - 1] >> lshift));
 }
 
 template <typename T, int bits> inline DUInt<T,bits>  DUInt<T,bits>::operator %  (const DUInt<T,bits>& src) const {
