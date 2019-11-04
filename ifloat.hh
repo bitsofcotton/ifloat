@@ -198,7 +198,7 @@ template <typename T, int bits> inline DUInt<T,bits>& DUInt<T,bits>::operator /=
   int s(0);
   if(! src.e[1]) {
     if(! src.e[0])
-      throw "Zero division.";
+      throw "Zero division";
     for(int i = 0; i < bits; i ++)
       if(src.e[0] & (T(1) << (bits - i - 1))) {
         s = bits - i - 1;
@@ -216,19 +216,13 @@ template <typename T, int bits> inline DUInt<T,bits>& DUInt<T,bits>::operator /=
  m2:
   auto works(src);
   auto res(works ^ works);
-  auto r(res);
-  while(! (!works)) {
-    const auto denom(works >> (s - (hbits - 1)));
-    const auto divisor(divq(denom, hbits - 1));
-    res   += divisor;
-    r     -= divisor * denom;
-    if(s <= 0 || !*this)
-      break;
-    *this -= (divisor << (s - (hbits - 1)));
-    s     -= hbits;
-    res  <<= hbits;
-    r    <<= hbits;
-    works -= denom << (s - (hbits - 1));
+  for( ; 0 < s && ! (!*this) && ! (! works); s -= hbits) {
+    const auto denom((works << s) >> (bits + hbits + 1));
+          auto divisor(*this);
+    divisor.divq(denom, hbits - 1);
+    res   += divisor << (bits + hbits + 1 - s);
+    *this -= divisor * denom;
+    works -= denom << (bits + hbits + 1 - s);
   }
   return *this = (res <<= s);
 }
@@ -237,25 +231,26 @@ template <typename T, int bits> inline DUInt<T,bits>& DUInt<T,bits>::divq(const 
   static const auto hbits(bits >> 1);
   static const auto lmask((T(1) << hbits) - T(1));
   const auto ss(hbits - s - 1);
-  assert(0 <= ss);
+  assert(0 <= ss && ! src.e[1] && ! (src.e[0] & (- T(1) - lmask)));
   const auto div(src.e[0] << ss);
   const auto d0(e[1] / div);
         auto r(e[1] - d0 * div);
   const auto e0(e[0]);
-  e[1]   = d0;
-  e[0]  ^= e[0];
-  r    <<= hbits;
-  r     |= e0 >> hbits;
+  e[1]    = d0;
+  e[0]   ^= e[0];
+  r     <<= hbits;
+  r      |= e0 >> hbits;
   const auto d1(r / div);
-  e[0]  |= d1;
-  r      = r - d1 * div;
-  r    <<= hbits;
-  r     |= e0 & lmask;
-  e[0] <<= hbits;
-  e[0]  |= r / div;
-  *this << ss;
-  r    <<= ss;
-  e[0]  |= r / div;
+  *this  += DUInt<T,bits>(d1) << hbits;
+  r       = r - d1 * div;
+  r     <<= hbits;
+  r      |= e0 & lmask;
+  const auto d2(r / div);
+  *this  += DUInt<T,bits>(d2);
+  *this <<= ss;
+  r       = r - d2 * div;
+  r     <<= ss;
+  *this  += DUInt<T,bits>(r / div);
   return *this;
 }
 
@@ -412,6 +407,9 @@ template <typename T, int bits> inline           DUInt<T,bits>::operator int () 
 }
 
 template <typename T, int bits> std::ostream&  operator << (std::ostream& os, DUInt<T,bits> v) {
+  // XXX:
+  os << v.e[0];
+  return os;
   static const DUInt<T,bits> ten(10);
   vector<char> buf;
   while(! (!v)) {

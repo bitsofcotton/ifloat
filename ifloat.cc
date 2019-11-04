@@ -11,11 +11,9 @@ typedef Float<unsigned long long, 64, short> f_t;
 
 int main() {
   di_t t0(1);
-  std::cout << (((t0 << 31) / t0) >> 31) << std::endl;
-  std::cout << (((t0 << 63) / t0) >> 31) << std::endl;
-  std::cout << (((t0 << 127) / t0) >> 31) << std::endl;
-  std::cout << (((t0 << 63) / t0) >> 63) << std::endl;
-  std::cout << (((t0 << 64) / t0) >> 64) << std::endl;
+  std::cout << (((t0 << 127) / t0) >> 127) << std::endl << std::endl;
+  std::cout << (((t0 << 255) / t0) >> 255) << std::endl << std::endl;
+  // std::cout << (((t0 << 127) / (t0 << 32)) >> (127 - 32)) << std::endl << std::endl;
   return 0;
   f_t test, test2;
   std::cin >> test;
