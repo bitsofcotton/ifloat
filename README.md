@@ -4,6 +4,8 @@ Too slow to calculate...
 
 # Tips
 (Still) not compatible with std::limits.
+  std::cout << (((unsigned long long)1) << 63) << std::endl;
+sometimes returns bugly value on some implementation, uint32_t is traditional style.
 
 # Bugs
 (Still) not works, debugging SimpleFloat::operator +,*,/.
