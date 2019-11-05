@@ -793,8 +793,6 @@ template <typename T, int bits, typename U> inline unsigned char SimpleFloat<T,b
 
 template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::floor() const {
   const static SimpleFloat<T,bits,U> zero(0);
-  if(s & ((1 << INF) | (1 << NaN)))
-    throw "Can't convert to int NaN";
   if(0 <= e)
     return *this;
   if(e <= - bits)
@@ -836,7 +834,7 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
         result += one << U(i - 1);
         work   *= iea[i];
       }
-    if(! (*this <= one_einv)) {
+    if(! (work <= one_einv)) {
       result += one;
       work   *= iea[1];
     }
@@ -846,7 +844,12 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
         result -= one << U(i - 1);
         work   *= ea[i];
       }
+    if(! (einv <= work)) {
+      result -= one;
+      work   *= ea[1];
+    }
   }
+  std::cerr << result << std::endl << work << std::endl;
   return result += work.logsmall();
 }
 
@@ -872,16 +875,19 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
   if(this->abs() <= one)
     return expsmall();
   SimpleFloat<T,bits,U> result(1);
-  const auto en(exparray());
-        auto work(this->abs());
+  const auto& en(exparray());
+  const auto& ien(invexparray());
+        auto  work(this->abs());
         int  i;
   for(i = 1; i < en.size() && work.floor(); i ++) {
-    if(work.residue2())
-      result *= en[i];
+    if(work.residue2()) {
+      if(s & (1 << SIGN))
+        result *= ien[i];
+      else
+        result *= en[i];
+    }
     work >>= U(1);
   }
-  if(s & (1 << SIGN))
-    result = one / result;
   return result *= (*this - this->floor()).expsmall();
 }
 
@@ -892,8 +898,8 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleF
   SimpleFloat<T,bits,U> res(1);
   for(int t = 1; (res - before).m; t ++) {
     before = res;
+    denom *= SimpleFloat<T,bits,U>(t);
     res   += x / denom;
-    denom *= SimpleFloat<T,bits,U>(t + 1);
     x     *= *this;
   }
   return res;
