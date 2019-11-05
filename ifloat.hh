@@ -247,7 +247,7 @@ template <typename T, int bits> inline DUInt<T,bits>& DUInt<T,bits>::operator /=
     //   ( |r| < |src|, ((d << tshift) * src) <= orig - d(k) )
     const auto tshift(hbits * i + lshift - (dblocks - 1) * hbits);
     div = (DUInt<T,bits>(d) * src) << tshift;
-    for(int i = 0; i < 4 && ! (div <= *this); i ++) {
+    for(int j = 0; j < 4 && ! (div <= *this); j ++) {
       -- d;
       div = (DUInt<T,bits>(d) * src) << tshift;
     }
