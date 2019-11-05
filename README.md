@@ -3,7 +3,7 @@ This is integer wrapper for working float, due to non reliable, nor complex, nor
 Too slow to calculate...
 
 # Tips
-(Still) not compatible with std::limits.
+(Still) not compatible with std::limits. neither not works with std::complex.
 
 # Bugs
 Applying for work with some of an implementations.
