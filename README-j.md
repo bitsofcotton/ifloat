@@ -4,11 +4,9 @@
 
 # Tips
 std::limits に(まだ)対応していません。
-  std::cout << (((unsigned long long)1) << 63) << std::endl;
-は実装により時々おかしな結果を返します。uint32_t は古くからある実装です。
 
 # バグ
-まだ動きません。SimpleFloat::operator +,*,/ のデバグ中です。
+まだ動きません。SimpleFloat::exp のデバグ中です。
 
 # 使い方
     #include "ifloat.hh"
