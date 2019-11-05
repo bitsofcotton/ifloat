@@ -804,7 +804,7 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleF
   if(! deci.m)
     return zero;
   deci.m <<= - deci.e;
-  return *this - deci;
+  return deci;
 }
 
 template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::abs() const {
@@ -878,14 +878,10 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
   for(i = 1; i < en.size() && work.floor(); i ++) {
     if(work.residue2())
       result *= en[i];
-    work /= two;
+    work >>= U(1);
   }
-  if(*this < zero)
+  if(s & (1 << SIGN))
     result = one / result;
-  if(en.size() <= i) {
-    result.s |= 1 << INF;
-    return result;
-  }
   return result *= (*this - this->floor()).expsmall();
 }
 

@@ -15,7 +15,7 @@ int main() {
   for(int i = 1; i < 64; i ++) {
     f  *= di_t(i);
     ff *= f_t(i);
-    std::cout << i << " : " << f << " == " << ff << ", 2 == " << (((di_t(1) << 63) / (di_t(1) << i)) >> (63 - i - 1)) << std::endl;
+    std::cout << i << " : " << f << " == " << ff << ", 2 == " << (((di_t(1) << 63) / (di_t(1) << i)) >> (63 - i - 1)) << " 0 != " << floor(f_t(1) << short(i)) << std::endl;
   }
   f_t test, test2;
   std::cin >> test;
