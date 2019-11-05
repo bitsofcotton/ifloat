@@ -796,6 +796,8 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleF
   if(s & ((1 << INF) | (1 << NaN)))
     throw "Can't convert to int NaN";
   if(0 <= e)
+    return *this;
+  if(e <= - bits)
     return zero;
   auto deci(*this);
   deci.m >>= - deci.e;
