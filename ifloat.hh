@@ -947,8 +947,12 @@ template <typename T, int bits, typename U> std::istream& operator >> (std::istr
     }
   }
  ensure:
-  if(mode && sign)
-    e = - e;
+  if(sign) {
+    if(mode)
+      e = - e;
+    else
+      v = - v;
+  }
   v *= pow(ten, e);
   return is;
 }
