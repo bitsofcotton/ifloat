@@ -3,9 +3,7 @@ This is integer wrapper for working float, due to non reliable, nor complex, nor
 Too slow to calculate...
 
 # Tips
-(Still) not compatible with std::limits.
-  std::cout << (((unsigned long long)1) << 63) << std::endl;
-sometimes returns bugly value on some implementation, uint32_t is traditional style.
+(Still) not compatible with std::limits. (1 << 63 is correct, bc with scale == 100).
 
 # Bugs
 (Still) not works, debugging SimpleFloat::operator +,*,/.
