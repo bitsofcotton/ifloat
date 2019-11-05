@@ -883,7 +883,7 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
       else
         result *= en[i];
     }
-  assert(! work);
+  assert(! work.floor());
   return result *= (*this - this->floor()).expsmall();
 }
 
