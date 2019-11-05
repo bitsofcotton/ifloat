@@ -524,7 +524,7 @@ public:
 private:
   template <typename V> inline int normalize(V& src) const;
   inline bool prepMul(const SimpleFloat<T,bits,U>& src);
-  inline unsigned char safeAdd(U& dst, const U& src);
+  inline void safeAdd(U& dst, const U& src);
   inline char residue2() const;
 };
 
@@ -539,7 +539,7 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U>::Simple
   s ^= s;
   m  = std::abs(src);
   e ^= e;
-  s |= safeAdd(e, normalize(m));
+  safeAdd(e, normalize(m));
   if(m < T(0))
     *this = - *this;
 }
@@ -579,7 +579,7 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U>& Simple
   if(! ((s & (1 << SIGN)) ^ (src.s & (1 << SIGN)))) {
     if(e >= src.e) {
       m >>= 1;
-      s |= safeAdd(e, 1);
+      safeAdd(e, 1);
       m += src.m >> (e - src.e);
     } else
       return *this = src + *this;
@@ -594,7 +594,7 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U>& Simple
     } else
       return *this = src + *this;
   }
-  s |= safeAdd(e, normalize(m));
+  safeAdd(e, normalize(m));
   if(!m || (s & (1 << DWRK))) {
     m ^= m;
     e ^= e;
@@ -626,9 +626,9 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U>& Simple
     return *this;
   }
   auto mm(DUInt<T,bits>(m) * DUInt<T,bits>(src.m));
-  s |= safeAdd(e, src.e);
-  s |= safeAdd(e, normalize(mm));
-  s |= safeAdd(e, bits);
+  safeAdd(e, src.e);
+  safeAdd(e, normalize(mm));
+  safeAdd(e, bits);
   m  = mm.e[1];
   if(s & (1 << DWRK)) {
     e ^= e;
@@ -657,8 +657,8 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U>& Simple
   if(! m)
     return *this;
   auto mm((DUInt<T,bits>(m) << bits) / DUInt<T,bits>(src.m));
-  s |= safeAdd(e, - src.e);
-  s |= safeAdd(e, normalize(mm));
+  safeAdd(e, - src.e);
+  safeAdd(e, normalize(mm));
   m  = mm.e[1];
   if(s & (1 << DWRK)) {
     e ^= e;
@@ -695,7 +695,7 @@ template <typename T, int bits, typename U> inline bool             SimpleFloat<
     return s & (1 << SIGN);
   if(s & (1 << SIGN))
     return - *this > - src;
-  return (!m || !src.m ? (!m ? ! (!src.m) : ! (!m)) : e > src.e || m > src.m) && isfinite(m) && isfinite(src.m);
+  return (!m ? (!src.m ? false : true) : (!src.m ? false : (e < src.e ? true : (e == src.e ? m < src.m : false))));
 }
 
 template <typename T, int bits, typename U> inline bool             SimpleFloat<T,bits,U>::operator <= (const SimpleFloat<T,bits,U>& src) const {
@@ -720,7 +720,8 @@ template <typename T, int bits, typename U> inline                  SimpleFloat<
 
 template <typename T, int bits, typename U> inline                  SimpleFloat<T,bits,U>::operator int  () const {
   auto deci(*this);
-  if(! (! (deci.m >> (bits - deci.e))) || ! (deci.m <<= deci.e) )
+  if(deci.s & ((1 << INF) || (1 << NaN)) ||
+     (! (!m) && ! (deci.m <<= deci.e) ))
     throw "Overflow to convert int.";
   return deci.m;
 }
@@ -735,7 +736,8 @@ template <typename T, int bits, typename U> template <typename V> inline int Sim
     bt <<= 1;
   }
   const auto shift(tb - b - 1);
-  src <<= shift;
+  if(shift)
+    src <<= shift;
   return - shift;
 }
 
@@ -748,17 +750,16 @@ template <typename T, int bits, typename U> inline bool SimpleFloat<T,bits,U>::p
   return true;
 }
 
-template <typename T, int bits, typename U> inline unsigned char SimpleFloat<T,bits,U>::safeAdd(U& dst, const U& src) {
+template <typename T, int bits, typename U> inline void SimpleFloat<T,bits,U>::safeAdd(U& dst, const U& src) {
   const auto dst0(dst);
-  unsigned char ss(0);
   dst += src;
   if(0 < dst0 * src && dst * src < 0) {
     if(dst < 0)
-      ss |= 1 << INF;
+      s |= 1 << INF;
     else
-      ss |= 1 << DWRK;
+      s |= 1 << DWRK;
   }
-  return ss;
+  return;
 }
 
 template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::ceil() const {
@@ -886,7 +887,7 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleF
     res   += x / denom;
     denom *= SimpleFloat<T,bits,U>(t);
     x     *= *this;
-    std::cerr << (res - before).abs() << ", " << x / denom << std::endl;
+    std::cerr << res << ", " << before << ", " << x / denom << std::endl;
   }
   return res;
 }
