@@ -259,9 +259,6 @@ template <typename T, int bits> inline DUInt<T,bits>& DUInt<T,bits>::operator /=
     *this -= div;
     res   += DUInt<T,bits>(d) << tshift;
   }
-  // XXX:
-  if(! (-- *this))
-    ++ res;
   return *this = (res >>= ltshift);
 }
 
@@ -430,13 +427,14 @@ template <typename T, int bits> inline           DUInt<T,bits>::operator int () 
 template <typename T, int bits> std::ostream&  operator << (std::ostream& os, DUInt<T,bits> v) {
   static const DUInt<T,bits> ten(10);
   vector<char> buf;
-  while(! (!v)) {
-    buf.push_back(int(v % ten) + char('0'));
-    v /= ten;
+  while(v) {
+    const auto div(v / ten);
+    buf.push_back(int(v - div * ten));
+    v = div;
   }
   if(buf.size()) {
     for(int i = 0; i < buf.size(); i ++)
-      os << buf[buf.size() - 1 - i];
+      os << int(buf[buf.size() - 1 - i]);
     return os;
   }
   return os << '0';
