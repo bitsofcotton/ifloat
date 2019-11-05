@@ -6,7 +6,7 @@ Too slow to calculate...
 (Still) not compatible with std::limits.
 
 # Bugs
-(Still) not works, debugging DInt::operator /.
+(Still) not works, debugging SimpleFloat::operator +,*,/.
 
 # How to use
     #include "ifloat.hh"
