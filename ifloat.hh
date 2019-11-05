@@ -793,8 +793,6 @@ template <typename T, int bits, typename U> inline unsigned char SimpleFloat<T,b
 
 template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::floor() const {
   const static SimpleFloat<T,bits,U> zero(0);
-  if(s & ((1 << INF) | (1 << NaN)))
-    throw "Can't convert to int NaN";
   if(0 <= e)
     return *this;
   if(e <= - bits)
@@ -814,7 +812,6 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleF
 }
 
 template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::log() const {
-  const static SimpleFloat<T,bits,U> zero(0);
   const static SimpleFloat<T,bits,U> one(1);
   const static SimpleFloat<T,bits,U> einv(one / one.expsmall());
   const static SimpleFloat<T,bits,U> one_einv(one + einv);
@@ -823,30 +820,35 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
     work.s |= (1 << INF) | (1 << SIGN);
     return work;
   }
-  assert(zero < *this);
+  assert(! (s & (1 << SIGN)));
   if(einv <= *this && *this <= one_einv)
     return logsmall();
   SimpleFloat<T,bits,U> result(0);
         auto  work(*this);
   const auto& ea(exparray());
   const auto& iea(invexparray());
-  if(one_einv < *this) {
-    for(int i = ea.size() - 1; 0 < i; i --)
+  if(one_einv < work) {
+    for(int i = min(ea.size(), iea.size()) - 1; 0 < i; i --)
       if(ea[i] <= work) {
         result += one << U(i - 1);
         work   *= iea[i];
       }
-    if(! (*this <= one_einv)) {
+    if(! (work <= one_einv)) {
       result += one;
       work   *= iea[1];
     }
   } else {
-    for(int i = iea.size() - 1; 0 < i; i --)
+    for(int i = min(ea.size(), iea.size()) - 1; 0 < i; i --)
       if(work <= iea[i]) {
         result -= one << U(i - 1);
         work   *= ea[i];
       }
+    if(! (einv <= work)) {
+      result -= one;
+      work   *= ea[1];
+    }
   }
+  assert(work);
   return result += work.logsmall();
 }
 
@@ -864,24 +866,25 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
 }
 
 template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::exp() const {
-  const static SimpleFloat<T,bits,U> zero(0);
   const static SimpleFloat<T,bits,U> one(1);
-  const static SimpleFloat<T,bits,U> two(2);
   if(s & ((1 << INF) || (1 << NaN)))
     return *this;
   if(this->abs() <= one)
     return expsmall();
   SimpleFloat<T,bits,U> result(1);
-  const auto en(exparray());
-        auto work(this->abs());
+  const auto& en(exparray());
+  const auto& ien(invexparray());
+        auto  work(this->abs());
         int  i;
   for(i = 1; i < en.size() && work.floor(); i ++) {
-    if(work.residue2())
-      result *= en[i];
+    if(work.residue2()) {
+      if(s & (1 << SIGN))
+        result *= ien[i];
+      else
+        result *= en[i];
+    }
     work >>= U(1);
   }
-  if(s & (1 << SIGN))
-    result = one / result;
   return result *= (*this - this->floor()).expsmall();
 }
 
@@ -892,8 +895,8 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleF
   SimpleFloat<T,bits,U> res(1);
   for(int t = 1; (res - before).m; t ++) {
     before = res;
+    denom *= SimpleFloat<T,bits,U>(t);
     res   += x / denom;
-    denom *= SimpleFloat<T,bits,U>(t + 1);
     x     *= *this;
   }
   return res;
