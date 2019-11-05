@@ -28,6 +28,11 @@ int main() {
   std::cout << log(exp(test)) << std::endl;
   std::cout << log(test) << std::endl;
   std::cout << exp(log(test)) << std::endl;
+  test = f_t(1) / test;
+  std::cout << exp(test) << std::endl;
+  std::cout << log(exp(test)) << std::endl;
+  std::cout << log(test) << std::endl;
+  std::cout << exp(log(test)) << std::endl;
   return 0;
 }
 
