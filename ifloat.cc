@@ -6,25 +6,28 @@
 #include <iostream>
 #include "ifloat.hh"
 
-typedef DUInt<unsigned long long, 64> di_t;
-typedef Float<unsigned long long, 64, short> f_t;
+typedef DUInt<uint64_t, 64> di_t;
+typedef SimpleFloat<uint64_t, 64, short> f_t;
 
 int main() {
-  di_t t0(1);
-  std::cout << (((t0 << 31) / t0) >> 31) << std::endl;
-  std::cout << (((t0 << 63) / t0) >> 31) << std::endl;
-  std::cout << (((t0 << 127) / t0) >> 31) << std::endl;
-  std::cout << (((t0 << 63) / t0) >> 63) << std::endl;
-  std::cout << (((t0 << 64) / t0) >> 64) << std::endl;
+  di_t f(1);
+  f_t  ff(1);
+  for(int i = 1; i < 64; i ++) {
+    f  *= di_t(i);
+    ff *= f_t(i);
+    std::cout << i << " : " << f << " == " << ff << ", 2 == " << (((di_t(1) << 63) / (di_t(1) << i)) >> (63 - i - 1)) << std::endl;
+  }
+  std::cout << log(exp(f_t(- 1) / f_t(2))) << std::endl;
   return 0;
   f_t test, test2;
   std::cin >> test;
   std::cin >> test2;
-  //std::cout << test << (((unsigned long long)1) << 63) << std::endl;
   std::cout << test << "+" << test2 << "= "<< test + test2 << std::endl;
   std::cout << test << "-" << test2 << "= "<< test - test2 << std::endl;
   std::cout << test << "*" << test2 << "= "<< test * test2 << std::endl;
   std::cout << test << "/" << test2 << "= "<< test / test2 << std::endl;
+  std::cout << test.exp() << std::endl;
+  std::cout << test.log() << std::endl;
   return 0;
 }
 
