@@ -6,12 +6,12 @@
 std::limits に(まだ)対応していません。
 
 # バグ
-まだ動きません。DInt::operator / のデバグ中です。
+まだ動きません。SimpleFloat::operator +,*,/ のデバグ中です。
 
 # 使い方
     #include "ifloat.hh"
     ...
-    typedef Float<unsigned long long, 64, short> float_t;
+    typedef SimpleFloat<unsigned long long, 64, short> float_t;
     ...
       ...
       float_t a(1);
