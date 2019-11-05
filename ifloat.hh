@@ -495,7 +495,7 @@ public:
   inline bool             operator !  () const;
   inline                  operator bool () const;
   inline                  operator int  () const;
-  inline SimpleFloat<T,bits,U>  ceil() const;
+  inline SimpleFloat<T,bits,U>  floor() const;
   inline SimpleFloat<T,bits,U>  abs()  const;
          SimpleFloat<T,bits,U>  log()  const;
          SimpleFloat<T,bits,U>  exp()  const;
@@ -791,24 +791,17 @@ template <typename T, int bits, typename U> inline unsigned char SimpleFloat<T,b
   return ss;
 }
 
-template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::ceil() const {
+template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::floor() const {
+  const static zero SimpleFloat<T,bits,U>(0);
   if(s & ((1 << INF) | (1 << NaN)))
     throw "Can't convert to int NaN";
+  if(0 <= e)
+    return zero;
   auto deci(*this);
-  if(bits <= std::abs(deci.e))
-    return *this;
-  if(deci.e < 0)
-    deci.m >>= std::abs(deci.e);
-  else
-    deci.m <<= deci.e;
+  deci.m >>= - dedi.e;
   if(! deci.m)
-    return *this;
-  if(deci.e < 0)
-    deci.m <<= std::abs(deci.e);
-  else
-    deci.m >>= deci.e;
-  if(0 < deci.e)
-    deci.m |= e & (- T(1) - (T(1) << (e + 1)));
+    return zero;
+  deci.m <<= - deci.e;
   return *this - deci;
 }
 
@@ -880,7 +873,7 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
   const auto en(exparray());
         auto work(this->abs());
         int  i;
-  for(i = 1; i < en.size() && work.ceil(); i ++) {
+  for(i = 1; i < en.size() && work.floor(); i ++) {
     if(work.residue2())
       result *= en[i];
     work /= two;
@@ -891,7 +884,7 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
     result.s |= 1 << INF;
     return result;
   }
-  return result *= (*this - this->ceil()).expsmall();
+  return result *= (*this - this->floor()).expsmall();
 }
 
 template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::expsmall() const {
@@ -1022,8 +1015,8 @@ template <typename T, int bits, typename U> inline bool isnan(const SimpleFloat<
   return src.s & (1 << src.NaN);
 }
 
-template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> ceil(const SimpleFloat<T,bits,U>& src) {
-  return src.ceil();
+template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> floor(const SimpleFloat<T,bits,U>& src) {
+  return src.floor();
 }
 
 template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> abs(const SimpleFloat<T,bits,U>& src) {
