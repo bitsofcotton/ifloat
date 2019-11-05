@@ -5,6 +5,7 @@ using std::max;
 using std::min;
 using std::vector;
 
+// Double int to new int class.
 template <typename T, int bits> class DUInt {
 public:
   inline DUInt();
@@ -463,6 +464,7 @@ template <typename T, int bits> std::istream&  operator >> (std::istream& is, DU
 }
 
 
+// integer to integer float part, needs DUInt class.
 template <typename T, int bits, typename U> class SimpleFloat {
 public:
   inline SimpleFloat();
@@ -1042,6 +1044,317 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> pow(con
   if(! dst)
     return SimpleFloat<T,bits,U>(1);
   return exp(log(src) * dst);
+}
+
+
+// class complex part:
+template <typename T> class Complex {
+public:
+  inline Complex();
+  inline Complex(const Complex<T>& s);
+  inline Complex(Complex<T>&& s);
+  inline Complex(const T& real, const T& imag = T(0));
+  inline Complex(T&& real);
+  inline Complex(T&& real, T&& imag);
+  inline ~Complex();
+
+  inline Complex<T>  operator ~  ()                    const;
+  inline Complex<T>  operator -  ()                    const;
+  inline Complex<T>  operator +  (const Complex<T>& s) const;
+  inline Complex<T>& operator += (const Complex<T>& s);
+  inline Complex<T>  operator -  (const Complex<T>& s) const;
+  inline Complex<T>& operator -= (const Complex<T>& s);
+  inline Complex<T>  operator *  (const T& s)          const;
+  inline Complex<T>& operator *= (const T& s);
+         Complex<T>  operator *  (const Complex<T>& s) const;
+  inline Complex<T>& operator *= (const Complex<T>& s);
+  inline Complex<T>  operator /  (const T& s)          const;
+  inline Complex<T>& operator /= (const T& s);
+         Complex<T>  operator /  (const Complex<T>& s) const;
+  inline Complex<T>& operator /= (const Complex<T>& s);
+  inline bool        operator == (const Complex<T>& s) const;
+  inline bool        operator != (const Complex<T>& s) const;
+  inline bool        operator !  ()                    const;
+  inline Complex<T>  operator &  (const Complex<T>& s) const;
+  inline Complex<T>& operator &= (const Complex<T>& s);
+  inline Complex<T>  operator |  (const Complex<T>& s) const;
+  inline Complex<T>& operator |= (const Complex<T>& s);
+  inline Complex<T>  operator ^  (const Complex<T>& s) const;
+  inline Complex<T>& operator ^= (const Complex<T>& s);
+  inline bool        operator && (const Complex<T>& s) const;
+  inline bool        operator || (const Complex<T>& s) const;
+  inline Complex<T>& operator =  (const Complex<T>& s);
+  inline Complex<T>& operator =  (Complex<T>&& s);
+  inline T&          operator [] (const size_t& i);
+  inline             operator bool () const;
+  inline             operator T    () const;
+  
+  const Complex<T>& i() const;
+  
+  inline T abs() const;
+  inline T arg() const;
+  inline Complex<T>& setByPolar(const T& abs, const T& arg);
+  T real;
+  T imag;
+};
+
+template <typename T> inline Complex<T>::Complex() {
+  ;
+}
+
+template <typename T> inline Complex<T>::Complex(const Complex<T>& src) {
+  *this = src;
+}
+
+template <typename T> inline Complex<T>::Complex(Complex<T>&& src) {
+  *this = src;
+}
+
+template <typename T> inline Complex<T>::Complex(const T& real, const T& imag) {
+  this->real = real;
+  this->imag = imag;
+  return;
+}
+
+template <typename T> inline Complex<T>::Complex(T&& real) {
+  const static T zero(0);
+  this->real = move(real);
+  this->imag = zero;
+  return;
+}
+
+template <typename T> inline Complex<T>::Complex(T&& real, T&& imag) {
+  this->real = move(real);
+  this->imag = move(imag);
+  return;
+}
+
+template <typename T> inline Complex<T>::~Complex() {
+  ;
+}
+
+template <typename T> inline Complex<T> Complex<T>::operator ~ () const {
+  auto result(*this);
+  result.imag = - imag;
+  return result;
+}
+
+template <typename T> inline Complex<T> Complex<T>::operator - () const {
+  Complex<T> result;
+  result.real = - real;
+  result.imag = - imag;
+  return result;
+}
+
+template <typename T> inline Complex<T> Complex<T>::operator + (const Complex<T>& s) const {
+  auto result(*this);
+  return result += s;
+}
+
+template <typename T> inline Complex<T>& Complex<T>::operator += (const Complex<T>& s) {
+  real += s.real;
+  imag += s.imag;
+  return *this;
+}
+
+template <typename T> inline Complex<T> Complex<T>::operator - (const Complex<T>& s) const {
+  auto result(*this);
+  return result -= s;
+}
+
+template <typename T> inline Complex<T>& Complex<T>::operator -= (const Complex<T>& s) {
+  real -= s.real;
+  imag -= s.imag;
+  return *this;
+}
+
+template <typename T> inline Complex<T>  Complex<T>::operator * (const T& s) const {
+  auto result(*this);
+  return result *= s;
+}
+
+template <typename T> inline Complex<T>& Complex<T>::operator *= (const T& s) {
+  real *= s;
+  imag *= s;
+  return *this;
+}
+  
+template <typename T>        Complex<T> Complex<T>::operator * (const Complex<T>& s) const {
+  return Complex<T>(real * s.real - imag * s.imag,
+                    real * s.imag + imag * s.real);
+}
+ 
+template <typename T> inline Complex<T>& Complex<T>::operator *= (const Complex<T>& s) {
+  return (*this) = (*this) * s;
+}
+
+template <typename T> inline Complex<T> Complex<T>::operator / (const T& s) const {
+  auto result(*this);
+  return result /= s;
+}
+
+template <typename T> inline Complex<T>& Complex<T>::operator /= (const T& s) {
+  real /= s;
+  imag /= s;
+  return *this;
+}
+
+template <typename T>        Complex<T> Complex<T>::operator / (const Complex<T>& s) const {
+  const auto denom(s.real * s.real + s.imag * s.imag);
+  return (real * (~ s)) / denom;
+}
+
+template <typename T> inline Complex<T>& Complex<T>::operator /= (const Complex<T>& s) {
+  return *this = *this / s;
+}
+
+template <typename T> inline bool Complex<T>::operator == (const Complex<T>& s) const {
+  return !(*this != s);
+}
+
+template <typename T> inline bool Complex<T>::operator != (const Complex<T>& s) const {
+  return (real != s.real) || (imag != s.imag);
+}
+
+template <typename T> inline bool Complex<T>::operator ! () const {
+  return !real || !imag;
+}
+
+template <typename T> inline Complex<T> Complex<T>::operator & (const Complex<T>& s) const {
+  auto result(*this);
+  return result &= s;
+}
+
+template <typename T> inline Complex<T>& Complex<T>::operator &= (const Complex<T>& s) {
+  real &= s.real;
+  imag &= s.imag;
+  return *this;
+}
+
+template <typename T> inline Complex<T> Complex<T>::operator | (const Complex<T>& s) const {
+  auto result(*this);
+  return result |= s;
+}
+
+template <typename T> inline Complex<T>& Complex<T>::operator |= (const Complex<T>& s) {
+  real |= s.real;
+  imag |= s.imag;
+  return *this;
+}
+
+template <typename T> inline Complex<T> Complex<T>::operator ^ (const Complex<T>& s) const {
+  auto result(*this);
+  return result ^= s;
+}
+
+template <typename T> inline Complex<T>& Complex<T>::operator ^= (const Complex<T>& s) {
+  real ^= s.real;
+  imag ^= s.imag;
+  return *this;
+}
+
+template <typename T> inline bool Complex<T>::operator && (const Complex<T>& s) const {
+  return *this && s;
+}
+
+template <typename T> inline bool Complex<T>::operator || (const Complex<T>& s) const {
+  return *this || s;
+}
+
+template <typename T> Complex<T>& Complex<T>::operator =  (const Complex<T>& s) {
+  real = s.real;
+  imag = s.imag;
+  return *this;
+}
+
+template <typename T> Complex<T>& Complex<T>::operator =  (Complex<T>&& s) {
+  real = move(s.real);
+  imag = move(s.imag);
+  return *this;
+}
+
+template <typename T> T& Complex<T>::operator [] (const size_t& i) {
+  assert(0 <= i && i < 2);
+  if(i)
+    return real;
+  return imag;
+}
+
+template <typename T> Complex<T>::operator bool () const {
+  return ! (! *this);
+}
+
+template <typename T> Complex<T>::operator T () const {
+  return this->real;
+}
+
+template <typename T> const Complex<T>& Complex<T>::i() const {
+  const static auto I(Complex<T>(T(0), T(1)));
+  return I;
+}
+
+template <typename T> T Complex<T>::abs() const {
+  return sqrt(real * real + imag * imag);
+}
+
+template <typename T> T Complex<T>::arg() const {
+  return atan2(real, imag);
+}
+
+template <typename T> Complex<T>& Complex<T>::setByPolar(const T& abs, const T& arg) {
+  real = abs * cos(arg);
+  imag = abs * sin(arg);
+  return *this;
+}
+
+
+template <typename T> T abs(const Complex<T>& s) {
+  return s.abs();
+}
+
+template <typename T> T arg(const Complex<T>& s) {
+  return s.arg();
+}
+
+template <typename T> T& real(const Complex<T>& s) {
+  return s.real;
+}
+
+template <typename T> T& imag(const Complex<T>& s) {
+  return s.imag;
+}
+
+template <typename T> Complex<T> cexp(const Complex<T>& s) {
+  return exp(abs(s)) * Complex<T>(cos(arg(s)), sin(arg(s)));
+}
+
+template <typename T> Complex<T> clog(const Complex<T>& s) {
+  // N.B. main branch
+  return Complex<T>(log(abs(s)), arg(s));
+}
+
+template <typename T> Complex<T> csin(const Complex<T>& s) {
+  return (cexp(Complex<T>(T(0), s)) - cexp(Complex<T>(T(0), - s))) / T(2);
+}
+
+template <typename T> Complex<T> ccos(const Complex<T>& s) {
+  return (cexp(Complex<T>(T(0), s)) + cexp(Complex<T>(T(0), - s))) / T(2);
+}
+
+template <typename T> Complex<T> ctan(const Complex<T>& s) {
+  return csin(s) / ccos(s);
+}
+
+template <typename T> Complex<T> ccsc(const Complex<T>& s) {
+  return Complex<T>(T(1)) / csin(s);
+}
+
+template <typename T> Complex<T> csec(const Complex<T>& s) {
+  return Complex<T>(T(1)) / ccos(s);
+}
+
+template <typename T> T ccot(const T& s) {
+  return Complex<T>(T(1)) / ctan(s);
 }
 
 #define _INTEGER_FLOAT_
