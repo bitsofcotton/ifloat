@@ -201,7 +201,7 @@ template <typename T, int bits> inline DUInt<T,bits>& DUInt<T,bits>::operator /=
   const auto dd(src << lshift);
   const auto dlast((dblocks - 1) & 1 ? dd.e[(dblocks - 1) >> 1] >> hbits
                                      : dd.e[(dblocks - 1) >> 1] &  lmask);
-  assert(! (! dlast));
+  assert(dlast);
   int ltshift(0);
   if(! e[1]) {
     for(int i = 0; i < bits; i ++)
@@ -214,7 +214,7 @@ template <typename T, int bits> inline DUInt<T,bits>& DUInt<T,bits>::operator /=
   }
   ltshift = bits * 2 - 1 - ltshift;
   *this <<= ltshift;
-  assert(! (! *this));
+  assert(*this);
   // N.B.
   //   block division with better condition.
   //   de[0] ... de[n], de[n] = 0...1..., each de uses half of space.
@@ -481,6 +481,10 @@ public:
          SimpleFloat<T,bits,U>& operator *= (const SimpleFloat<T,bits,U>& src);
   inline SimpleFloat<T,bits,U>  operator /  (const SimpleFloat<T,bits,U>& src) const;
          SimpleFloat<T,bits,U>& operator /= (const SimpleFloat<T,bits,U>& src);
+  inline SimpleFloat<T,bits,U>  operator <<  (const U& b) const;
+  inline SimpleFloat<T,bits,U>& operator <<= (const U& b);
+  inline SimpleFloat<T,bits,U>  operator >>  (const U& b) const;
+  inline SimpleFloat<T,bits,U>& operator >>= (const U& b);
   inline SimpleFloat<T,bits,U>& operator =  (const SimpleFloat<T,bits,U>& src);
   inline SimpleFloat<T,bits,U>& operator =  (SimpleFloat<T,bits,U>&& src);
   inline bool             operator == (const SimpleFloat<T,bits,U>& src) const;
@@ -536,8 +540,8 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U>::Simple
   m  = std::abs(src);
   e ^= e;
   s |= safeAdd(e, normalize(m));
-  if(m < T(0))
-    *this = - *this;
+  if(src < 0)
+    s |= 1 << SIGN;
 }
 
 template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U>::SimpleFloat(const SimpleFloat<T,bits,U>& src) {
@@ -672,6 +676,26 @@ template <typename T, int bits, typename U>        SimpleFloat<T,bits,U>& Simple
   return *this;
 }
 
+template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U>  SimpleFloat<T,bits,U>::operator <<  (const U& b) const {
+  auto work(*this);
+  return work <<= b;
+}
+
+template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U>& SimpleFloat<T,bits,U>::operator <<= (const U& b) {
+  s |= safeAdd(e, b);
+  return *this;
+}
+
+template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U>  SimpleFloat<T,bits,U>::operator >>  (const U& b) const {
+  auto work(*this);
+  return work >>= b;
+}
+
+template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U>& SimpleFloat<T,bits,U>::operator >>= (const U& b) {
+  s |= safeAdd(e, - b);
+  return *this;
+}
+
 template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U>& SimpleFloat<T,bits,U>::operator =  (const SimpleFloat<T,bits,U>& src) {
   s = src.s;
   e = src.e;
@@ -725,7 +749,7 @@ template <typename T, int bits, typename U> inline                  SimpleFloat<
 template <typename T, int bits, typename U> inline                  SimpleFloat<T,bits,U>::operator int  () const {
   auto deci(*this);
   if(deci.s & ((1 << INF) || (1 << NaN)) ||
-     (! (!m) && ! (deci.m <<= deci.e) ))
+     (m && ! (deci.m <<= deci.e) ))
     throw "Overflow to convert int.";
   return deci.m;
 }
@@ -734,7 +758,7 @@ template <typename T, int bits, typename U> template <typename V> inline int Sim
   V   bt(1);
   int b(0);
   int tb;
-  for(tb = 0; ! (! bt); tb ++) {
+  for(tb = 0; bt; tb ++) {
     if(src & bt)
       b = tb;
     bt <<= 1;
@@ -797,19 +821,39 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleF
 template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::log() const {
   const static SimpleFloat<T,bits,U> zero(0);
   const static SimpleFloat<T,bits,U> one(1);
-  const static SimpleFloat<T,bits,U> two(2);
   const static SimpleFloat<T,bits,U> einv(one / one.expsmall());
-        static vector<SimpleFloat<T,bits,U> > p2;
-  assert(zero <= *this);
+  const static SimpleFloat<T,bits,U> one_einv(one + einv);
   if(! *this) {
     auto work(*this);
     work.s |= (1 << INF) | (1 << SIGN);
     return work;
   }
-  if(einv <= *this && *this <= one + einv)
+  assert(zero < *this);
+  if(einv <= *this && *this <= one_einv)
     return logsmall();
-  assert(0 && "not implemented now.");
-  return one;
+  assert(0);
+  SimpleFloat<T,bits,U> result(0);
+        auto  work(*this);
+  const auto& ea(exparray());
+  const auto& iea(invexparray());
+  if(one_einv < *this) {
+    for(int i = ea.size() - 1; 0 < i; i --)
+      if(ea[i] <= work) {
+        result += one << U(i);
+        work   *= iea[i];
+      }
+    if(! (*this <= one_einv)) {
+      result += one;
+      work   *= iea[1];
+    }
+  } else {
+    for(int i = iea.size() - 1; 0 < i; i --)
+      if(work <= iea[i]) {
+        result -= one << U(i);
+        work   *= ea[i];
+      }
+  }
+  return result += work.logsmall();
 }
 
 template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::logsmall() const {
@@ -817,7 +861,8 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
   SimpleFloat<T,bits,U> x(dx);
   SimpleFloat<T,bits,U> before(1);
   SimpleFloat<T,bits,U> res(0);
-  for(int t = 1; ! !((res - before).m); t ++) {
+  std::cerr << *this << std::endl;
+  for(int t = 1; (res - before).m; t ++) {
     before = res;
     res   += x / SimpleFloat<T,bits,U>(t * pow(- 1, (t % 2) - 1));
     x     *= dx;
@@ -837,7 +882,6 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
   const auto en(exparray());
         auto work(this->abs());
         int  i;
-  std::cerr << work << std::endl;
   for(i = 1; i < en.size() && work.ceil(); i ++) {
     if(work.residue2())
       result *= en[i];
@@ -849,7 +893,6 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
     result.s |= 1 << INF;
     return result;
   }
-  std::cerr << result << std::endl;
   return result *= (*this - this->ceil()).expsmall();
 }
 
@@ -858,7 +901,7 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleF
   SimpleFloat<T,bits,U> x(*this);
   SimpleFloat<T,bits,U> before(0);
   SimpleFloat<T,bits,U> res(1);
-  for(int t = 1; ! !((res - before).m); t ++) {
+  for(int t = 1; (res - before).m; t ++) {
     before = res;
     res   += x / denom;
     denom *= SimpleFloat<T,bits,U>(t + 1);
@@ -889,8 +932,13 @@ template <typename T, int bits, typename U> const vector<SimpleFloat<T,bits,U> >
     return iebuf;
   const auto& ea(exparray());
   SimpleFloat<T,bits,U> one(1);
-  for(int i = 0; 0 < ea.size(); i ++)
-    iebuf.push_back(one / ea[i]);
+  for(int i = 0; 0 < ea.size(); i ++) {
+    const auto ien(one / ea[i]);
+    if(isfinite(ien))
+      iebuf.push_back(ien);
+    else
+      break;
+  }
   return iebuf;
 }
 
@@ -951,7 +999,6 @@ template <typename T, int bits, typename U> std::istream& operator >> (std::istr
         v += SimpleFloat<T,bits,U>(int(buf - '0'));
       }
       fsign = true;
-      std::cerr << v << std::endl;
       break;
     default:
       goto ensure;
