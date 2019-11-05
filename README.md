@@ -6,7 +6,7 @@ Too slow to calculate...
 (Still) not compatible with std::limits. (1 << 63 is correct, bc with scale == 100).
 
 # Bugs
-(Still) not works, debugging SimpleFloat::operator +,*,/.
+(Still) not works, debugging SimpleFloat::exp.
 
 # How to use
     #include "ifloat.hh"
