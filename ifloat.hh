@@ -643,7 +643,11 @@ template <typename T, int bits, typename U>        SimpleFloat<T,bits,U>& Simple
 }
 
 template <typename T, int bits, typename U> inline char SimpleFloat<T,bits,U>::residue2() const {
-  return char(int(m << e)) & 1;
+  if(bits <= std::abs(e))
+    return 0;
+  if(e < 0)
+    return char(int(m >> std::abs(e)) & 1);
+  return char(int(m << e) & 1);
 }
 
 template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::operator /  (const SimpleFloat<T,bits,U>& src) const {
@@ -740,6 +744,7 @@ template <typename T, int bits, typename U> template <typename V> inline int Sim
     bt <<= 1;
   }
   const auto shift(tb - b - 1);
+  assert(0 <= shift);
   src <<= shift;
   return - shift;
 }
@@ -770,12 +775,20 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleF
   if(s & ((1 << INF) | (1 << NaN)))
     throw "Can't convert to int NaN";
   auto deci(*this);
-  deci.m <<= deci.e;
+  if(bits <= std::abs(deci.e))
+    return *this;
+  if(deci.e < 0)
+    deci.m >>= std::abs(deci.e);
+  else
+    deci.m <<= deci.e;
   if(! deci.m)
     return *this;
-  deci.m >>= deci.e;
-  if(0 < e)
-    deci.m |= e & (- (U(1) << (e + 1)));
+  if(deci.e < 0)
+    deci.m <<= std::abs(deci.e);
+  else
+    deci.m >>= deci.e;
+  if(0 < deci.e)
+    deci.m |= e & (- T(1) - (T(1) << (e + 1)));
   return *this - deci;
 }
 
@@ -828,6 +841,7 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
   const auto en(exparray());
         auto work(this->abs());
         int  i;
+  std::cerr << work << std::endl;
   for(i = 1; i < en.size() && work.ceil(); i ++) {
     if(work.residue2())
       result *= en[i];
@@ -839,6 +853,7 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
     result.s |= 1 << INF;
     return result;
   }
+  std::cerr << result << std::endl;
   return result *= (*this - this->ceil()).expsmall();
 }
 
