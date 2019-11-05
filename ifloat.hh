@@ -1006,6 +1006,9 @@ template <typename T, int bits, typename U> std::istream& operator >> (std::istr
   return is;
 }
 
+template <typename T, int bits, typename U> inline bool isinf(const SimpleFloat<T,bits,U>& src) {
+  return src.s & (1 << src.INF);
+}
 
 template <typename T, int bits, typename U> inline bool isfinite(const SimpleFloat<T,bits,U>& src) {
   return ! (src.s & ((1 << src.INF) | (1 << src.NaN)));
