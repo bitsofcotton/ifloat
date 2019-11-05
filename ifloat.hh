@@ -792,7 +792,7 @@ template <typename T, int bits, typename U> inline unsigned char SimpleFloat<T,b
 }
 
 template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::floor() const {
-  const static zero SimpleFloat<T,bits,U>(0);
+  const static SimpleFloat<T,bits,U> zero(0);
   if(s & ((1 << INF) | (1 << NaN)))
     throw "Can't convert to int NaN";
   if(0 <= e)
