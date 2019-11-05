@@ -848,7 +848,6 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
       work   *= ea[1];
     }
   }
-  std::cerr << result << std::endl << work << std::endl << *this << std::endl;
   assert(work);
   return result += work.logsmall();
 }
