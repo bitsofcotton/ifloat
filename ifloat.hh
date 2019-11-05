@@ -876,7 +876,7 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
   const auto& ien(invexparray());
         auto  work(this->abs());
         int  i;
-  for(i = 1; i < en.size() && work.floor(); i ++) {
+  for(i = 1; i < min(en.size(), ien.size()) && work.floor(); i ++) {
     if(work.residue2()) {
       if(s & (1 << SIGN))
         result *= ien[i];
