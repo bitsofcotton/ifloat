@@ -524,7 +524,7 @@ public:
 private:
   template <typename V> inline int normalize(V& src) const;
   inline bool prepMul(const SimpleFloat<T,bits,U>& src);
-  inline void safeAdd(U& dst, const U& src);
+  inline unsigned char safeAdd(U& dst, const U& src);
   inline char residue2() const;
 };
 
@@ -539,7 +539,7 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U>::Simple
   s ^= s;
   m  = std::abs(src);
   e ^= e;
-  safeAdd(e, normalize(m));
+  s |= safeAdd(e, normalize(m));
   if(m < T(0))
     *this = - *this;
 }
@@ -579,14 +579,18 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U>& Simple
   if(! ((s & (1 << SIGN)) ^ (src.s & (1 << SIGN)))) {
     if(e >= src.e) {
       m >>= 1;
-      safeAdd(e, 1);
-      m += src.m >> (e - src.e);
+      s |= safeAdd(e, 1);
+      U se(e);
+      if(! safeAdd(se, - src.e) && se < bits)
+        m += src.m >> se;
     } else
       return *this = src + *this;
   } else {
-    if(e > src.e)
-      m -= src.m >> (e - src.e);
-    else if(e == src.e) {
+    if(e > src.e) {
+      U se(e);
+      if(! safeAdd(se, - src.e) && se < bits)
+        m -= src.m >> se;
+    } else if(e == src.e) {
       if(m >= src.m)
         m -= src.m;
       else
@@ -594,7 +598,7 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U>& Simple
     } else
       return *this = src + *this;
   }
-  safeAdd(e, normalize(m));
+  s |= safeAdd(e, normalize(m));
   if(!m || (s & (1 << DWRK))) {
     m ^= m;
     e ^= e;
@@ -626,9 +630,9 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U>& Simple
     return *this;
   }
   auto mm(DUInt<T,bits>(m) * DUInt<T,bits>(src.m));
-  safeAdd(e, src.e);
-  safeAdd(e, normalize(mm));
-  safeAdd(e, bits);
+  s |= safeAdd(e, src.e);
+  s |= safeAdd(e, normalize(mm));
+  s |= safeAdd(e, bits);
   m  = mm.e[1];
   if(s & (1 << DWRK)) {
     e ^= e;
@@ -657,8 +661,8 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U>& Simple
   if(! m)
     return *this;
   auto mm((DUInt<T,bits>(m) << bits) / DUInt<T,bits>(src.m));
-  safeAdd(e, - src.e);
-  safeAdd(e, normalize(mm));
+  s |= safeAdd(e, - src.e);
+  s |= safeAdd(e, normalize(mm));
   m  = mm.e[1];
   if(s & (1 << DWRK)) {
     e ^= e;
@@ -736,8 +740,7 @@ template <typename T, int bits, typename U> template <typename V> inline int Sim
     bt <<= 1;
   }
   const auto shift(tb - b - 1);
-  if(shift)
-    src <<= shift;
+  src <<= shift;
   return - shift;
 }
 
@@ -750,16 +753,17 @@ template <typename T, int bits, typename U> inline bool SimpleFloat<T,bits,U>::p
   return true;
 }
 
-template <typename T, int bits, typename U> inline void SimpleFloat<T,bits,U>::safeAdd(U& dst, const U& src) {
+template <typename T, int bits, typename U> inline unsigned char SimpleFloat<T,bits,U>::safeAdd(U& dst, const U& src) {
   const auto dst0(dst);
+  unsigned char ss(0);
   dst += src;
   if(0 < dst0 * src && dst * src < 0) {
     if(dst < 0)
-      s |= 1 << INF;
+      ss |= 1 << INF;
     else
-      s |= 1 << DWRK;
+      ss |= 1 << DWRK;
   }
-  return;
+  return ss;
 }
 
 template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::ceil() const {
@@ -887,7 +891,7 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleF
     res   += x / denom;
     denom *= SimpleFloat<T,bits,U>(t);
     x     *= *this;
-    std::cerr << res << ", " << before << ", " << x / denom << std::endl;
+    std::cerr << res << ", " << before << ", " << x / denom << ", " << (res - before) << std::endl;
   }
   return res;
 }
