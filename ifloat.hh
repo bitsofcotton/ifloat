@@ -848,7 +848,7 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
       work   *= ea[1];
     }
   }
-  assert(work);
+  assert(work && einv <= work && work <= one_einv);
   return result += work.logsmall();
 }
 
@@ -876,15 +876,14 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
   const auto& ien(invexparray());
         auto  work(this->abs());
         int  i;
-  for(i = 1; i < en.size() && work.floor(); i ++) {
+  for(i = 1; i < min(en.size(), ien.size()) && work.floor(); i ++, work >>= U(1))
     if(work.residue2()) {
       if(s & (1 << SIGN))
         result *= ien[i];
       else
         result *= en[i];
     }
-    work >>= U(1);
-  }
+  assert(! work.floor());
   return result *= (*this - this->floor()).expsmall();
 }
 
@@ -1007,6 +1006,9 @@ template <typename T, int bits, typename U> std::istream& operator >> (std::istr
   return is;
 }
 
+template <typename T, int bits, typename U> inline bool isinf(const SimpleFloat<T,bits,U>& src) {
+  return src.s & (1 << src.INF);
+}
 
 template <typename T, int bits, typename U> inline bool isfinite(const SimpleFloat<T,bits,U>& src) {
   return ! (src.s & ((1 << src.INF) | (1 << src.NaN)));

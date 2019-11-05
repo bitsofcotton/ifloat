@@ -6,7 +6,7 @@
 std::limits に(まだ)対応していません。
 
 # バグ
-まだ動きません。SimpleFloat::exp のデバグ中です。
+他の実装と一緒に動かすことができるか検討中です。std::complex とは現状うまく動きません。
 
 # 使い方
     #include "ifloat.hh"
