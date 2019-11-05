@@ -798,7 +798,7 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleF
   if(0 <= e)
     return zero;
   auto deci(*this);
-  deci.m >>= - dedi.e;
+  deci.m >>= - deci.e;
   if(! deci.m)
     return zero;
   deci.m <<= - deci.e;
