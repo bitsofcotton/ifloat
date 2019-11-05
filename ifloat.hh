@@ -160,9 +160,8 @@ template <typename T, int bits> inline DUInt<T,bits>  DUInt<T,bits>::operator * 
   // d0 * s0 + (d0 * s1 + s0 * d1) * p1 +
   //   (d0 * s2 + d2 * s0 + d1 * s1) * p2 +
   //   (d0 * s3 + d2 * s1 + d1 * s2 + d3 * s0) * p3
-  // XXX: if we have sign extension, we can use:
+  // N.B. not used:
   //   dk * sl + dl * sk == dk * sk + sl * dl - (dk - dl) * (sk - sl)
-  // XXX: if we see this with assembler ovf flag, it extremely speed up.
   return DUInt<T,bits>(d0 * s0) +
        ((DUInt<T,bits>(s0 * d1) + DUInt<T,bits>(s1 * d0)) << hbits) +
        (DUInt<T,bits>(s0 * d2 + s2 * d0 + s1 * d1) << bits) +
@@ -572,6 +571,7 @@ template <typename T, int bits, typename U>        SimpleFloat<T,bits,U>& Simple
   if(! m) {
     m = src.m;
     e = src.e;
+    s = src.s;
     return *this;
   }
   if(! src.m)
@@ -831,7 +831,6 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
   assert(zero < *this);
   if(einv <= *this && *this <= one_einv)
     return logsmall();
-  assert(0);
   SimpleFloat<T,bits,U> result(0);
         auto  work(*this);
   const auto& ea(exparray());
@@ -839,7 +838,7 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
   if(one_einv < *this) {
     for(int i = ea.size() - 1; 0 < i; i --)
       if(ea[i] <= work) {
-        result += one << U(i);
+        result += one << U(i - 1);
         work   *= iea[i];
       }
     if(! (*this <= one_einv)) {
@@ -849,7 +848,7 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
   } else {
     for(int i = iea.size() - 1; 0 < i; i --)
       if(work <= iea[i]) {
-        result -= one << U(i);
+        result -= one << U(i - 1);
         work   *= ea[i];
       }
   }
@@ -861,7 +860,6 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
   SimpleFloat<T,bits,U> x(dx);
   SimpleFloat<T,bits,U> before(1);
   SimpleFloat<T,bits,U> res(0);
-  std::cerr << *this << std::endl;
   for(int t = 1; (res - before).m; t ++) {
     before = res;
     res   += x / SimpleFloat<T,bits,U>(t * pow(- 1, (t % 2) - 1));
