@@ -848,7 +848,7 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
       work   *= ea[1];
     }
   }
-  assert(work);
+  assert(work && einv <= work && work <= one_einv);
   return result += work.logsmall();
 }
 
@@ -876,15 +876,14 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
   const auto& ien(invexparray());
         auto  work(this->abs());
         int  i;
-  for(i = 1; i < min(en.size(), ien.size()) && work.floor(); i ++) {
+  for(i = 1; i < min(en.size(), ien.size()) && work.floor(); i ++, work >>= U(1))
     if(work.residue2()) {
       if(s & (1 << SIGN))
         result *= ien[i];
       else
         result *= en[i];
     }
-    work >>= U(1);
-  }
+  assert(! work);
   return result *= (*this - this->floor()).expsmall();
 }
 
