@@ -884,14 +884,13 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
 template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::expsmall() const {
   SimpleFloat<T,bits,U> denom(1);
   SimpleFloat<T,bits,U> x(*this);
-  SimpleFloat<T,bits,U> before(0);
-  SimpleFloat<T,bits,U> res(1);
+  SimpleFloat<T,bits,U> before(1);
+  SimpleFloat<T,bits,U> res(0);
   for(int t = 1; ! !((res - before).m); t ++) {
     before = res;
     res   += x / denom;
     denom *= SimpleFloat<T,bits,U>(t);
     x     *= *this;
-    std::cerr << res << ", " << before << ", " << x / denom << ", " << (res - before) << std::endl;
   }
   return res;
 }
