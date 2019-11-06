@@ -787,10 +787,12 @@ template <typename T, typename W, int bits, typename U> inline                  
 template <typename T, typename W, int bits, typename U> inline                  SimpleFloat<T,W,bits,U>::operator T    () const {
   auto deci(*this);
   if(deci.s & ((1 << INF) | (1 << NaN)) ||
-     (m &&
-      ((  0 < deci.e && deci.e < bits && ! (deci.m <<= deci.e)) ||
-       (- bits < deci.e && deci.e < 0 && ! (deci.m >>= - deci.e)) ) ) )
+     (deci.m && (bits <= deci.e || (U(0) < deci.e && ! (deci.m <<= deci.e)))) )
     throw "Overflow to convert int.";
+  if(deci.e <= - bits)
+    return T(0);
+  if(deci.e <  U(0))
+    deci.m >>= - deci.e;
   return deci.m;
 }
 
