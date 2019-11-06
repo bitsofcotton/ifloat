@@ -772,8 +772,11 @@ template <typename T, typename W, int bits, typename U> inline                  
 
 template <typename T, typename W, int bits, typename U> inline                  SimpleFloat<T,W,bits,U>::operator T    () const {
   auto deci(*this);
-  if(deci.s & ((1 << INF) | (1 << NaN)) ||
-     (deci.m && (bits <= deci.e || (U(0) < deci.e && ! (deci.m <<= deci.e)))) )
+  if(deci.s & ((1 << INF) | (1 << NaN)))
+    throw "NaN to convert int";
+  if(! deci.m)
+    return T(0);
+  if(bits <= deci.e || (U(0) < deci.e && ! (deci.m <<= deci.e)))
     throw "Overflow to convert int.";
   if(deci.e <= - bits)
     return T(0);
@@ -898,6 +901,7 @@ template <typename T, typename W, int bits, typename U> SimpleFloat<T,W,bits,U> 
       result += one();
       work   *= iea[1];
     }
+    assert(work <= one_einv);
   } else {
     for(int i = min(ea.size(), iea.size()) - 1; 0 < i; i --)
       if(work <= iea[i]) {
@@ -908,8 +912,8 @@ template <typename T, typename W, int bits, typename U> SimpleFloat<T,W,bits,U> 
       result -= one();
       work   *= ea[1];
     }
+    assert(einv <= work);
   }
-  assert(work && einv <= work && work <= one_einv);
   return result += work.log();
 }
 
