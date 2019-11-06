@@ -864,6 +864,8 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleF
 template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::log() const {
   const static SimpleFloat<T,bits,U> einv(one() / one().exp());
   const static SimpleFloat<T,bits,U> one_einv(one() + einv);
+  if(s & ((1 << INF) | (1 << NaN)))
+    return *this;
   if(! *this) {
     auto work(*this);
     work.s |= (1 << INF) | (1 << SIGN);
@@ -939,7 +941,10 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
       else
         result *= en[i];
     }
-  assert(! work.floor());
+  if(! work.floor() ) {
+    work.s |= 1 << INF;
+    return work;
+  }
   const auto residue(*this - this->floor());
   assert(residue.abs() <= one());
   return result *= residue.exp();
