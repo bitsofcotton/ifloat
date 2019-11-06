@@ -1309,11 +1309,11 @@ public:
   inline Complex<T>& operator -= (const Complex<T>& s);
   inline Complex<T>  operator *  (const T& s)          const;
   inline Complex<T>& operator *= (const T& s);
-         Complex<T>  operator *  (const Complex<T>& s) const;
+  inline Complex<T>  operator *  (const Complex<T>& s) const;
   inline Complex<T>& operator *= (const Complex<T>& s);
   inline Complex<T>  operator /  (const T& s)          const;
   inline Complex<T>& operator /= (const T& s);
-         Complex<T>  operator /  (const Complex<T>& s) const;
+  inline Complex<T>  operator /  (const Complex<T>& s) const;
   inline Complex<T>& operator /= (const Complex<T>& s);
   inline bool        operator == (const Complex<T>& s) const;
   inline bool        operator != (const Complex<T>& s) const;
@@ -1424,7 +1424,7 @@ template <typename T> inline Complex<T>& Complex<T>::operator *= (const T& s) {
   return *this;
 }
   
-template <typename T>        Complex<T> Complex<T>::operator * (const Complex<T>& s) const {
+template <typename T> inline Complex<T> Complex<T>::operator * (const Complex<T>& s) const {
   return Complex<T>(_real * s._real - _imag * s._imag,
                     _real * s._imag + _imag * s._real);
 }
@@ -1444,7 +1444,7 @@ template <typename T> inline Complex<T>& Complex<T>::operator /= (const T& s) {
   return *this;
 }
 
-template <typename T>        Complex<T> Complex<T>::operator / (const Complex<T>& s) const {
+template <typename T> inline Complex<T> Complex<T>::operator / (const Complex<T>& s) const {
   const auto denom(s._real * s._real + s._imag * s._imag);
   return (_real * (~ s)) / denom;
 }
