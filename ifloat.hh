@@ -1597,7 +1597,7 @@ template <typename T> const T& imag(const Complex<T>& s) {
 }
 
 template <typename T> Complex<T> exp(const Complex<T>& s) {
-  return exp(abs(s)) * Complex<T>(cos(arg(s)), sin(arg(s)));
+  return exp(s.real()) * Complex<T>(cos(s.imag()), sin(s.imag()));
 }
 
 template <typename T> Complex<T> log(const Complex<T>& s) {
