@@ -55,6 +55,8 @@ public:
   inline bool           operator !    () const;
   inline                operator bool () const;
   inline                operator int  () const;
+  inline                operator T    () const;
+  inline                operator DUInt<T,bits> () const;
 
 /*
   friend std::ostream&  operator << (std::ostream& os, DUInt<T,bits>  v);
@@ -146,8 +148,8 @@ template <typename T, int bits> inline DUInt<T,bits>& DUInt<T,bits>::operator -=
 }
 
 template <typename T, int bits> inline DUInt<T,bits>  DUInt<T,bits>::operator *  (const DUInt<T,bits>& src) const {
-  static const auto hbits(bits >> 1);
-  static const auto lmask((T(1) << hbits) - T(1));
+  const static auto hbits(bits >> 1);
+  const static auto lmask((T(1) << hbits) - T(1));
   const auto d0(e[0] & lmask);
   const auto d1(e[0] >> hbits);
   const auto d2(e[1] & lmask);
@@ -179,8 +181,8 @@ template <typename T, int bits> inline DUInt<T,bits>  DUInt<T,bits>::operator / 
 }
 
 template <typename T, int bits> inline DUInt<T,bits>& DUInt<T,bits>::operator /= (const DUInt<T,bits>& src) {
-  static const auto hbits(bits >> 1);
-  static const auto lmask((T(1) << hbits) - T(1));
+  const static auto hbits(bits >> 1);
+  const static auto lmask((T(1) << hbits) - T(1));
   if(! *this)
     return *this;
   int shift(0);
@@ -420,8 +422,16 @@ template <typename T, int bits> inline           DUInt<T,bits>::operator int () 
   return int(e[0]);
 }
 
+template <typename T, int bits> inline           DUInt<T,bits>::operator T   () const {
+  return e[0];
+}
+
+template <typename T, int bits> inline           DUInt<T,bits>::operator DUInt<T,bits> () const {
+  return *this;
+}
+
 template <typename T, int bits> std::ostream&  operator << (std::ostream& os, DUInt<T,bits> v) {
-  static const DUInt<T,bits> ten(10);
+  const static DUInt<T,bits> ten(10);
   vector<char> buf;
   while(v) {
     const auto div(v / ten);
@@ -429,7 +439,7 @@ template <typename T, int bits> std::ostream&  operator << (std::ostream& os, DU
     v = div;
   }
   if(buf.size()) {
-    for(int i = 0; i < buf.size(); i ++)
+    for(int i = 0; 0 <= i && i < buf.size(); i ++)
       os << int(buf[buf.size() - 1 - i]);
     return os;
   }
@@ -482,6 +492,8 @@ public:
          SimpleFloat<T,bits,U>& operator *= (const SimpleFloat<T,bits,U>& src);
   inline SimpleFloat<T,bits,U>  operator /  (const SimpleFloat<T,bits,U>& src) const;
          SimpleFloat<T,bits,U>& operator /= (const SimpleFloat<T,bits,U>& src);
+  inline SimpleFloat<T,bits,U>  operator %  (const SimpleFloat<T,bits,U>& src) const;
+  inline SimpleFloat<T,bits,U>& operator %= (const SimpleFloat<T,bits,U>& src);
   inline SimpleFloat<T,bits,U>  operator <<  (const U& b) const;
   inline SimpleFloat<T,bits,U>& operator <<= (const U& b);
   inline SimpleFloat<T,bits,U>  operator >>  (const U& b) const;
@@ -497,13 +509,17 @@ public:
   inline bool             operator !  () const;
   inline                  operator bool () const;
   inline                  operator int  () const;
+  inline                  operator T    () const;
+  inline                  operator SimpleFloat<T,bits,U> () const;
   inline SimpleFloat<T,bits,U>  floor() const;
+  inline SimpleFloat<T,bits,U>  ceil() const;
   inline SimpleFloat<T,bits,U>  abs()  const;
          SimpleFloat<T,bits,U>  log()  const;
          SimpleFloat<T,bits,U>  exp()  const;
+         SimpleFloat<T,bits,U>  sin()  const;
+         SimpleFloat<T,bits,U>  cos()  const;
+         SimpleFloat<T,bits,U>  atan() const;
   inline SimpleFloat<T,bits,U>  sqrt() const;
-  inline SimpleFloat<T,bits,U>  logsmall() const;
-  inline SimpleFloat<T,bits,U>  expsmall() const;
   
 /*
   friend std::ostream&    operator << (std::ostream& os, const SimpleFloat<T,bits,U>& v);
@@ -519,13 +535,21 @@ public:
   } state_t;
   T m;
   U e;
+  const SimpleFloat<T,bits,U>& zero()   const;
+  const SimpleFloat<T,bits,U>& one()    const;
+  const SimpleFloat<T,bits,U>& two()    const;
+  const SimpleFloat<T,bits,U>& pi()     const;
+  const SimpleFloat<T,bits,U>& halfpi() const;
+  const SimpleFloat<T,bits,U>& quatpi() const;
+  const SimpleFloat<T,bits,U>& twopi()  const;
+  const SimpleFloat<T,bits,U>& sqrt2()  const;
 private:
   template <typename V> inline int normalize(V& src) const;
   inline bool prepMul(const SimpleFloat<T,bits,U>& src);
   inline unsigned char safeAdd(U& dst, const U& src);
   inline char residue2() const;
 
-  const vector<SimpleFloat<T,bits,U> >& exparray() const;
+  const vector<SimpleFloat<T,bits,U> >& exparray()    const;
   const vector<SimpleFloat<T,bits,U> >& invexparray() const;
 };
 
@@ -678,6 +702,14 @@ template <typename T, int bits, typename U>        SimpleFloat<T,bits,U>& Simple
   return *this;
 }
 
+template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U>  SimpleFloat<T,bits,U>::operator %  (const SimpleFloat<T,bits,U>& src) const {
+  return *this - (*this / src).floor() * src;
+}
+
+template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U>& SimpleFloat<T,bits,U>::operator %= (const SimpleFloat<T,bits,U>& src) {
+  return *this = *this % src;
+}
+
 template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U>  SimpleFloat<T,bits,U>::operator <<  (const U& b) const {
   auto work(*this);
   return work <<= b;
@@ -749,11 +781,19 @@ template <typename T, int bits, typename U> inline                  SimpleFloat<
 }
 
 template <typename T, int bits, typename U> inline                  SimpleFloat<T,bits,U>::operator int  () const {
+  return int(T(*this));
+}
+
+template <typename T, int bits, typename U> inline                  SimpleFloat<T,bits,U>::operator T    () const {
   auto deci(*this);
-  if(deci.s & ((1 << INF) || (1 << NaN)) ||
+  if(deci.s & ((1 << INF) | (1 << NaN)) ||
      (m && ! (deci.m <<= deci.e) ))
     throw "Overflow to convert int.";
   return deci.m;
+}
+
+template <typename T, int bits, typename U> inline                  SimpleFloat<T,bits,U>::operator SimpleFloat<T,bits,U> () const {
+  return *this;
 }
 
 template <typename T, int bits, typename U> template <typename V> inline int SimpleFloat<T,bits,U>::normalize(V& src) const {
@@ -794,17 +834,25 @@ template <typename T, int bits, typename U> inline unsigned char SimpleFloat<T,b
 }
 
 template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::floor() const {
-  const static SimpleFloat<T,bits,U> zero(0);
   if(0 <= e)
     return *this;
   if(e <= - bits)
-    return zero;
+    return zero();
   auto deci(*this);
   deci.m >>= - deci.e;
   if(! deci.m)
-    return zero;
+    return zero();
   deci.m <<= - deci.e;
   return deci;
+}
+
+template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::ceil() const {
+  if(*this - this->floor()) {
+    auto pmone(one());
+    pmone.s |= s & (1 << SIGN);
+    return this->floor() + pmone;
+  }
+  return *this;
 }
 
 template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::abs() const {
@@ -814,17 +862,27 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleF
 }
 
 template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::log() const {
-  const static SimpleFloat<T,bits,U> one(1);
-  const static SimpleFloat<T,bits,U> einv(one / one.expsmall());
-  const static SimpleFloat<T,bits,U> one_einv(one + einv);
+  const static SimpleFloat<T,bits,U> einv(one() / one().exp());
+  const static SimpleFloat<T,bits,U> one_einv(one() + einv);
   if(! *this) {
     auto work(*this);
     work.s |= (1 << INF) | (1 << SIGN);
     return work;
   }
   assert(! (s & (1 << SIGN)));
-  if(einv <= *this && *this <= one_einv)
-    return logsmall();
+  if(einv <= *this && *this <= one_einv) {
+    const auto dx(*this - one());
+          auto x(dx);
+          auto before(one());
+          auto res(zero());
+    for(int t = 1; (res - before).m; t ++) {
+      const auto abst(x / SimpleFloat<T,bits,U>(t));
+      before = res;
+      res   += (t % 2 ? - abst : abst);
+      x     *= dx;
+    }
+    return res;
+  }
   SimpleFloat<T,bits,U> result(0);
         auto  work(*this);
   const auto& ea(exparray());
@@ -832,53 +890,49 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
   if(one_einv < work) {
     for(int i = min(ea.size(), iea.size()) - 1; 0 < i; i --)
       if(ea[i] <= work) {
-        result += one << U(i - 1);
+        result += one() << U(i - 1);
         work   *= iea[i];
       }
     if(! (work <= one_einv)) {
-      result += one;
+      result += one();
       work   *= iea[1];
     }
   } else {
     for(int i = min(ea.size(), iea.size()) - 1; 0 < i; i --)
       if(work <= iea[i]) {
-        result -= one << U(i - 1);
+        result -= one() << U(i - 1);
         work   *= ea[i];
       }
     if(! (einv <= work)) {
-      result -= one;
+      result -= one();
       work   *= ea[1];
     }
   }
   assert(work && einv <= work && work <= one_einv);
-  return result += work.logsmall();
-}
-
-template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::logsmall() const {
-  const auto dx(*this - SimpleFloat<T,bits,U>(1));
-  SimpleFloat<T,bits,U> x(dx);
-  SimpleFloat<T,bits,U> before(1);
-  SimpleFloat<T,bits,U> res(0);
-  for(int t = 1; (res - before).m; t ++) {
-    before = res;
-    res   += x / SimpleFloat<T,bits,U>(t * pow(- 1, (t % 2) - 1));
-    x     *= dx;
-  }
-  return res;
+  return result += work.log();
 }
 
 template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::exp() const {
-  const static SimpleFloat<T,bits,U> one(1);
-  if(s & ((1 << INF) || (1 << NaN)))
+  if(s & ((1 << INF) | (1 << NaN)))
     return *this;
-  if(this->abs() <= one)
-    return expsmall();
+  if(this->abs() <= one()) {
+    auto denom(one());
+    auto x(*this);
+    auto before(zero());
+    auto res(one());
+    for(int t = 1; (res - before).m; t ++) {
+      before = res;
+      denom *= SimpleFloat<T,bits,U>(t);
+      res   += x / denom;
+      x     *= *this;
+    }
+    return res;
+  }
   SimpleFloat<T,bits,U> result(1);
   const auto& en(exparray());
   const auto& ien(invexparray());
         auto  work(this->abs());
-        int  i;
-  for(i = 1; i < min(en.size(), ien.size()) && work.floor(); i ++, work >>= U(1))
+  for(int i = 1; 0 <= i && i < min(en.size(), ien.size()) && work.floor(); i ++, work >>= U(1))
     if(work.residue2()) {
       if(s & (1 << SIGN))
         result *= ien[i];
@@ -886,31 +940,121 @@ template <typename T, int bits, typename U> SimpleFloat<T,bits,U> SimpleFloat<T,
         result *= en[i];
     }
   assert(! work.floor());
-  return result *= (*this - this->floor()).expsmall();
+  const auto residue(*this - this->floor());
+  assert(residue.abs() <= one());
+  return result *= residue.exp();
 }
 
-template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::expsmall() const {
-  SimpleFloat<T,bits,U> denom(1);
-  SimpleFloat<T,bits,U> x(*this);
-  SimpleFloat<T,bits,U> before(0);
-  SimpleFloat<T,bits,U> res(1);
-  for(int t = 1; (res - before).m; t ++) {
-    before = res;
-    denom *= SimpleFloat<T,bits,U>(t);
-    res   += x / denom;
-    x     *= *this;
+template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::sin() const {
+  if(s & ((1 << INF) | (1 << NaN)))
+    return *this;
+  if(- quatpi() <= *this && *this <= quatpi()) {
+    const auto sqx(*this * *this);
+          auto denom(one());
+          auto x(sqx * *this);
+          auto before(zero());
+          auto res(*this);
+    for(int t = 1; (res - before).m; t ++) {
+      SimpleFloat<T,bits,U> tt(t);
+      tt   <<= U(1);
+      before = res;
+      denom *= - tt * (tt + one());
+      res   += x / denom;
+      x     *= sqx;
+    }
+    return res;
   }
-  return res;
+  if(- halfpi() <= *this && *this <= halfpi())
+    return ((*this - quatpi()).sin() + (*this - quatpi()).cos()) / sqrt2();
+  if(- pi() <= *this && *this <= pi())
+    return (halfpi() - *this).cos();
+  if(- twopi() <= *this && *this <= twopi())
+    return - (*this + pi()).sin();
+  return (*this % twopi()).sin();
+}
+
+template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::cos() const {
+  if(s & ((1 << INF) | (1 << NaN)))
+    return *this;
+  if(- quatpi() <= *this && *this <= quatpi()) {
+    const auto sqx(*this * *this);
+          auto denom(one());
+          auto x(sqx);
+          auto before(zero());
+          auto res(one());
+    for(int t = 1; (res - before).m; t ++) {
+      SimpleFloat<T,bits,U> tt(t);
+      tt   <<= U(1);
+      before = res;
+      denom *= - tt * (tt - one());
+      res   += x / denom;
+      x     *= sqx;
+    }
+    return res;
+  }
+  if(- halfpi() <= *this && *this <= halfpi())
+    return ((*this - quatpi()).sin() - (*this - quatpi()).cos()) / sqrt2();
+  if(- pi() <= *this && *this <= pi())
+    return (halfpi() - *this).sin();
+  if(- twopi() <= *this && *this <= twopi())
+    return - (*this + pi()).cos();
+  return (*this % twopi()).cos();
+}
+
+template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::atan() const {
+  if(s & ((1 << INF) | (1 << NaN)))
+    return *this;
+  static const auto half(one() >> U(1));
+  if(- half <= *this && *this <= half) {
+    const auto sqx(*this * *this);
+          auto x(sqx * *this);
+          auto before(zero());
+          auto res(*this);
+    for(int t = 1; (res - before).m; t ++) {
+      const auto abst(x / ((SimpleFloat<T,bits,U>(t) << U(1)) + one()));
+      before = res;
+      res   += (t % 2 ? - abst : abst);
+      x     *= sqx;
+    }
+    return res;
+  }
+  // N.B.
+  //  atan(u) + atan(v) = atan((u + v) / (1 - uv)) mod pi, uv != 1.
+  //    in u = 0.5, v = x - 0.5 case,
+  //  atan(x / (1 - x / 2 + 1 / 4)) = atan(.5) + atan(x - .5) =
+  //  atan(x / (1.25 - .5 * x)) 
+  //  y := x / (1.25 - .5 * x) then,
+  //  (1.25 - .5 * x) * y = x,
+  //  (5 - 2x) * y = 4 x
+  //  x = 5y / (4 + 2) = 5 / 6 * y
+  if(- two() <= *this && *this <= two()) {
+    static const auto atanhalf(half.atan());
+    static const auto five_six(SimpleFloat<T,bits,U>(5) / SimpleFloat<T,bits,U>(6));
+    if(s & (1 << SIGN))
+      return - (- *this).atan();
+    return atanhalf + (five_six * *this - half).atan();
+  }
+  // N.B.
+  //    in u = v case,
+  //  2 atan(u) = atan(2 * u / (1 - u * u))
+  //    in u := x + 1 case,
+  //  2 atan(1 + x) = atan(2 * (1 + x) / (x + x * x))
+  //                = atan(2 / x)
+  //    in Y := 2 / x case,
+  //  atan(Y) = 2 atan(1 + 2 / Y)
+  const auto y(one() + (one() / (*this)) << U(1));
+  assert(- two() <= y && y <= two());
+  return y.atan() << U(1);
 }
 
 template <typename T, int bits, typename U> const vector<SimpleFloat<T,bits,U> >& SimpleFloat<T,bits,U>::exparray() const {
   static vector<SimpleFloat<T,bits,U> > ebuf;
   if(ebuf.size())
     return ebuf;
-  ebuf.push_back(SimpleFloat<T,bits,U>(1));
-  ebuf.push_back(ebuf[0].expsmall());
+  ebuf.push_back(one());
+  ebuf.push_back(ebuf[0].exp());
   for(int i = 1; 0 <= i; i ++) {
-    const auto en(ebuf[ebuf.size() - 1] * ebuf[ebuf.size() - 1]);
+    const auto en(ebuf[i] * ebuf[i]);
     if(isfinite(en))
       ebuf.push_back(en);
     else
@@ -924,9 +1068,8 @@ template <typename T, int bits, typename U> const vector<SimpleFloat<T,bits,U> >
   if(iebuf.size())
     return iebuf;
   const auto& ea(exparray());
-  SimpleFloat<T,bits,U> one(1);
-  for(int i = 0; 0 < ea.size(); i ++) {
-    const auto ien(one / ea[i]);
+  for(int i = 0; 0 <= i && 0 < ea.size(); i ++) {
+    const auto ien(one() / ea[i]);
     if(isfinite(ien))
       iebuf.push_back(ien);
     else
@@ -935,10 +1078,54 @@ template <typename T, int bits, typename U> const vector<SimpleFloat<T,bits,U> >
   return iebuf;
 }
 
+template <typename T, int bits, typename U> const SimpleFloat<T,bits,U>& SimpleFloat<T,bits,U>::zero() const {
+  const static SimpleFloat<T,bits,U> vzero(0);
+  return vzero;
+}
+
+template <typename T, int bits, typename U> const SimpleFloat<T,bits,U>& SimpleFloat<T,bits,U>::one() const {
+  const static SimpleFloat<T,bits,U> vone(1);
+  return vone;
+}
+
+template <typename T, int bits, typename U> const SimpleFloat<T,bits,U>& SimpleFloat<T,bits,U>::two() const {
+  const static auto vtwo(one() << U(1));
+  return vtwo;
+}
+
+template <typename T, int bits, typename U> const SimpleFloat<T,bits,U>& SimpleFloat<T,bits,U>::pi() const {
+  const static auto vpi(quatpi() << U(2));
+  return vpi;
+}
+
+template <typename T, int bits, typename U> const SimpleFloat<T,bits,U>
+& SimpleFloat<T,bits,U>::halfpi() const {
+  const static auto vhalfpi(quatpi() << U(1));
+  return vhalfpi;
+}
+
+template <typename T, int bits, typename U> const SimpleFloat<T,bits,U>
+& SimpleFloat<T,bits,U>::quatpi() const {
+  const static auto vquatpi(one().atan());
+  return vquatpi;
+}
+
+template <typename T, int bits, typename U> const SimpleFloat<T,bits,U>
+& SimpleFloat<T,bits,U>::twopi() const {
+  const static auto vtwopi(quatpi() << U(3));
+  return vtwopi;
+}
+
+template <typename T, int bits, typename U> const SimpleFloat<T,bits,U>
+& SimpleFloat<T,bits,U>::sqrt2() const {
+  const static auto vsqrt2((one() << U(1)).sqrt());
+  return vsqrt2;
+}
+
 template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> SimpleFloat<T,bits,U>::sqrt() const {
   if(s & ((1 << INF) | (1 << NaN)))
     return *this;
-  static const auto half(SimpleFloat<T,bits,U>(1) / SimpleFloat<T,bits,U>(2));
+  const static auto half(one() >> U(1));
   return (this->log() * half).exp();
 }
 
@@ -1024,6 +1211,10 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> floor(c
   return src.floor();
 }
 
+template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> ceil(const SimpleFloat<T,bits,U>& src) {
+  return src.ceil();
+}
+
 template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> abs(const SimpleFloat<T,bits,U>& src) {
   return src.abs();
 }
@@ -1040,9 +1231,52 @@ template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> log(con
   return src.log();
 }
 
+template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> sin(const SimpleFloat<T,bits,U>& src) {
+  return src.sin();
+}
+
+template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> cos(const SimpleFloat<T,bits,U>& src) {
+  return src.cos();
+}
+
+template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> tan(const SimpleFloat<T,bits,U>& src) {
+  return src.sin() / src.cos();
+}
+
+template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> atan2(const SimpleFloat<T,bits,U>& y, const SimpleFloat<T,bits,U>& x) {
+  auto atan0(y.halfpi());
+  if(! x && ! y)
+    return x / y;
+  else if(isfinite(x)) {
+    if(! isfinite(y) )
+      goto ensure;
+    const auto yoverx((y / x).abs());
+    if(! isfinite(yoverx) )
+      goto ensure;
+    const auto atan00(yoverx.atan());
+    if(! isfinite(atan00) )
+      goto ensure;
+    atan0 = atan00;
+    goto ensure;
+  } else if(isfinite(y)) {
+    atan0 = x.zero();
+    goto ensure;
+  }
+  return y;
+ ensure:
+  if(y.s & (1 << y.SIGN)) {
+    if(x.s & (1 << x.SIGN))
+      atan0 = - (x.pi() - atan0);
+    else
+      atan0 = - atan0;
+  } else if(x.s & (1 << x.SIGN))
+    atan0  = x.pi() - atan0;
+  return atan0;
+}
+
 template <typename T, int bits, typename U> inline SimpleFloat<T,bits,U> pow(const SimpleFloat<T,bits,U>& src, const SimpleFloat<T,bits,U>& dst) {
   if(! dst)
-    return SimpleFloat<T,bits,U>(1);
+    return dst.one();
   return exp(log(src) * dst);
 }
 
@@ -1091,11 +1325,13 @@ public:
   
   const Complex<T>& i() const;
   
-  inline T abs() const;
-  inline T arg() const;
+  inline T  abs() const;
+  inline T  arg() const;
+  inline T& real();
+  inline T& imag();
   inline Complex<T>& setByPolar(const T& abs, const T& arg);
-  T real;
-  T imag;
+  T _real;
+  T _imag;
 };
 
 template <typename T> inline Complex<T>::Complex() {
@@ -1111,21 +1347,21 @@ template <typename T> inline Complex<T>::Complex(Complex<T>&& src) {
 }
 
 template <typename T> inline Complex<T>::Complex(const T& real, const T& imag) {
-  this->real = real;
-  this->imag = imag;
+  _real = real;
+  _imag = imag;
   return;
 }
 
 template <typename T> inline Complex<T>::Complex(T&& real) {
   const static T zero(0);
-  this->real = move(real);
-  this->imag = zero;
+  _real = move(real);
+  _imag = zero;
   return;
 }
 
 template <typename T> inline Complex<T>::Complex(T&& real, T&& imag) {
-  this->real = move(real);
-  this->imag = move(imag);
+  _real = move(real);
+  _imag = move(imag);
   return;
 }
 
@@ -1135,14 +1371,14 @@ template <typename T> inline Complex<T>::~Complex() {
 
 template <typename T> inline Complex<T> Complex<T>::operator ~ () const {
   auto result(*this);
-  result.imag = - imag;
+  result._imag = - _imag;
   return result;
 }
 
 template <typename T> inline Complex<T> Complex<T>::operator - () const {
   Complex<T> result;
-  result.real = - real;
-  result.imag = - imag;
+  result._real = - _real;
+  result._imag = - _imag;
   return result;
 }
 
@@ -1152,8 +1388,8 @@ template <typename T> inline Complex<T> Complex<T>::operator + (const Complex<T>
 }
 
 template <typename T> inline Complex<T>& Complex<T>::operator += (const Complex<T>& s) {
-  real += s.real;
-  imag += s.imag;
+  _real += s._real;
+  _imag += s._imag;
   return *this;
 }
 
@@ -1163,8 +1399,8 @@ template <typename T> inline Complex<T> Complex<T>::operator - (const Complex<T>
 }
 
 template <typename T> inline Complex<T>& Complex<T>::operator -= (const Complex<T>& s) {
-  real -= s.real;
-  imag -= s.imag;
+  _real -= s._real;
+  _imag -= s._imag;
   return *this;
 }
 
@@ -1174,14 +1410,14 @@ template <typename T> inline Complex<T>  Complex<T>::operator * (const T& s) con
 }
 
 template <typename T> inline Complex<T>& Complex<T>::operator *= (const T& s) {
-  real *= s;
-  imag *= s;
+  _real *= s;
+  _imag *= s;
   return *this;
 }
   
 template <typename T>        Complex<T> Complex<T>::operator * (const Complex<T>& s) const {
-  return Complex<T>(real * s.real - imag * s.imag,
-                    real * s.imag + imag * s.real);
+  return Complex<T>(_real * s._real - _imag * s._imag,
+                    _real * s._imag + _imag * s._real);
 }
  
 template <typename T> inline Complex<T>& Complex<T>::operator *= (const Complex<T>& s) {
@@ -1194,14 +1430,14 @@ template <typename T> inline Complex<T> Complex<T>::operator / (const T& s) cons
 }
 
 template <typename T> inline Complex<T>& Complex<T>::operator /= (const T& s) {
-  real /= s;
-  imag /= s;
+  _real /= s;
+  _imag /= s;
   return *this;
 }
 
 template <typename T>        Complex<T> Complex<T>::operator / (const Complex<T>& s) const {
-  const auto denom(s.real * s.real + s.imag * s.imag);
-  return (real * (~ s)) / denom;
+  const auto denom(s._real * s._real + s._imag * s._imag);
+  return (_real * (~ s)) / denom;
 }
 
 template <typename T> inline Complex<T>& Complex<T>::operator /= (const Complex<T>& s) {
@@ -1213,11 +1449,11 @@ template <typename T> inline bool Complex<T>::operator == (const Complex<T>& s) 
 }
 
 template <typename T> inline bool Complex<T>::operator != (const Complex<T>& s) const {
-  return (real != s.real) || (imag != s.imag);
+  return (_real != s._real) || (_imag != s._imag);
 }
 
 template <typename T> inline bool Complex<T>::operator ! () const {
-  return !real || !imag;
+  return !_real || !_imag;
 }
 
 template <typename T> inline Complex<T> Complex<T>::operator & (const Complex<T>& s) const {
@@ -1226,8 +1462,8 @@ template <typename T> inline Complex<T> Complex<T>::operator & (const Complex<T>
 }
 
 template <typename T> inline Complex<T>& Complex<T>::operator &= (const Complex<T>& s) {
-  real &= s.real;
-  imag &= s.imag;
+  _real &= s._real;
+  _imag &= s._imag;
   return *this;
 }
 
@@ -1237,8 +1473,8 @@ template <typename T> inline Complex<T> Complex<T>::operator | (const Complex<T>
 }
 
 template <typename T> inline Complex<T>& Complex<T>::operator |= (const Complex<T>& s) {
-  real |= s.real;
-  imag |= s.imag;
+  _real |= s._real;
+  _imag |= s._imag;
   return *this;
 }
 
@@ -1248,8 +1484,8 @@ template <typename T> inline Complex<T> Complex<T>::operator ^ (const Complex<T>
 }
 
 template <typename T> inline Complex<T>& Complex<T>::operator ^= (const Complex<T>& s) {
-  real ^= s.real;
-  imag ^= s.imag;
+  _real ^= s._real;
+  _imag ^= s._imag;
   return *this;
 }
 
@@ -1262,22 +1498,22 @@ template <typename T> inline bool Complex<T>::operator || (const Complex<T>& s) 
 }
 
 template <typename T> Complex<T>& Complex<T>::operator =  (const Complex<T>& s) {
-  real = s.real;
-  imag = s.imag;
+  _real = s._real;
+  _imag = s._imag;
   return *this;
 }
 
 template <typename T> Complex<T>& Complex<T>::operator =  (Complex<T>&& s) {
-  real = move(s.real);
-  imag = move(s.imag);
+  _real = move(s._real);
+  _imag = move(s._imag);
   return *this;
 }
 
 template <typename T> T& Complex<T>::operator [] (const size_t& i) {
   assert(0 <= i && i < 2);
   if(i)
-    return real;
-  return imag;
+    return _real;
+  return _imag;
 }
 
 template <typename T> Complex<T>::operator bool () const {
@@ -1285,7 +1521,7 @@ template <typename T> Complex<T>::operator bool () const {
 }
 
 template <typename T> Complex<T>::operator T () const {
-  return this->real;
+  return this->_real;
 }
 
 template <typename T> const Complex<T>& Complex<T>::i() const {
@@ -1294,16 +1530,24 @@ template <typename T> const Complex<T>& Complex<T>::i() const {
 }
 
 template <typename T> T Complex<T>::abs() const {
-  return sqrt(real * real + imag * imag);
+  return sqrt(_real * _real + _imag * _imag);
 }
 
 template <typename T> T Complex<T>::arg() const {
-  return atan2(real, imag);
+  return atan2(_real, _imag);
+}
+
+template <typename T> T& Complex<T>::real() {
+  return _real;
+}
+
+template <typename T> T& Complex<T>::imag() {
+  return _imag;
 }
 
 template <typename T> Complex<T>& Complex<T>::setByPolar(const T& abs, const T& arg) {
-  real = abs * cos(arg);
-  imag = abs * sin(arg);
+  _real = abs * cos(arg);
+  _imag = abs * sin(arg);
   return *this;
 }
 
@@ -1316,29 +1560,33 @@ template <typename T> T arg(const Complex<T>& s) {
   return s.arg();
 }
 
-template <typename T> T& real(const Complex<T>& s) {
-  return s.real;
+template <typename T> T& _real(const Complex<T>& s) {
+  return s._real;
 }
 
-template <typename T> T& imag(const Complex<T>& s) {
-  return s.imag;
+template <typename T> T& _imag(const Complex<T>& s) {
+  return s._imag;
 }
 
-template <typename T> Complex<T> cexp(const Complex<T>& s) {
+template <typename T> Complex<T> exp(const Complex<T>& s) {
   return exp(abs(s)) * Complex<T>(cos(arg(s)), sin(arg(s)));
 }
 
-template <typename T> Complex<T> clog(const Complex<T>& s) {
+template <typename T> Complex<T> log(const Complex<T>& s) {
   // N.B. main branch
   return Complex<T>(log(abs(s)), arg(s));
 }
 
+template <typename T> Complex<T> sqrt(const Complex<T>& s) {
+  return exp(log(s) * Complex<T>(T(1) / T(2)));
+}
+
 template <typename T> Complex<T> csin(const Complex<T>& s) {
-  return (cexp(Complex<T>(T(0), s)) - cexp(Complex<T>(T(0), - s))) / T(2);
+  return (exp(Complex<T>(T(0), s)) - exp(Complex<T>(T(0), - s))) / T(2);
 }
 
 template <typename T> Complex<T> ccos(const Complex<T>& s) {
-  return (cexp(Complex<T>(T(0), s)) + cexp(Complex<T>(T(0), - s))) / T(2);
+  return (exp(Complex<T>(T(0), s)) + exp(Complex<T>(T(0), - s))) / T(2);
 }
 
 template <typename T> Complex<T> ctan(const Complex<T>& s) {
