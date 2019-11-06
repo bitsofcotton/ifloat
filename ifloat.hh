@@ -735,7 +735,7 @@ template <typename T, typename W, int bits, typename U> inline bool             
 }
 
 template <typename T, typename W, int bits, typename U> inline bool             SimpleFloat<T,W,bits,U>::operator != (const SimpleFloat<T,W,bits,U>& src) const {
-  return s != src.s || e != src.e || m != src.m;
+  return !(!m && !src.m) && (s != src.s || e != src.e || m != src.m);
 }
 
 template <typename T, typename W, int bits, typename U> inline bool             SimpleFloat<T,W,bits,U>::operator <  (const SimpleFloat<T,W,bits,U>& src) const {
@@ -828,7 +828,8 @@ template <typename T, typename W, int bits, typename U> inline unsigned char Sim
   const auto dst0(dst);
   unsigned char ss(0);
   dst += src;
-  if(0 < dst0 * src && dst * src < 0) {
+  if((dst0 > 0 && src > 0 && dst < 0) ||
+     (dst0 < 0 && src < 0 && dst > 0)) {
     if(dst < 0)
       ss |= 1 << INF;
     else
