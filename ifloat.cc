@@ -7,7 +7,8 @@
 #include "ifloat.hh"
 
 typedef DUInt<uint64_t, 64> di_t;
-typedef SimpleFloat<uint64_t, 64, short> f_t;
+//typedef SimpleFloat<uint64_t, DUInt<uint64_t, 64>, 64, short> f_t;
+typedef SimpleFloat<uint32_t, uint64_t, 32, short> f_t;
 
 int main() {
   di_t f(1);
