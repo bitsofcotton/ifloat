@@ -1453,7 +1453,7 @@ template <typename T> inline Complex<T>& Complex<T>::operator /= (const T& s) {
 
 template <typename T> inline Complex<T> Complex<T>::operator / (const Complex<T>& s) const {
   const auto denom(s._real * s._real + s._imag * s._imag);
-  return (_real * (~ s)) / denom;
+  return (*this * (~ s)) / denom;
 }
 
 template <typename T> inline Complex<T>& Complex<T>::operator /= (const Complex<T>& s) {
@@ -1597,7 +1597,7 @@ template <typename T> const T& imag(const Complex<T>& s) {
 }
 
 template <typename T> Complex<T> exp(const Complex<T>& s) {
-  return exp(s.real()) * Complex<T>(cos(s.imag()), sin(s.imag()));
+  return Complex<T>(exp(s.real())) * Complex<T>(cos(s.imag()), sin(s.imag()));
 }
 
 template <typename T> Complex<T> log(const Complex<T>& s) {
