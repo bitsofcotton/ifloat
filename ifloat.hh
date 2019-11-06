@@ -1006,7 +1006,7 @@ template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,b
     return res;
   }
   if(- halfpi() <= *this && *this <= halfpi())
-    return ((*this - quatpi()).sin() - (*this - quatpi()).cos()) / sqrt2();
+    return ((*this - quatpi()).cos() - (*this - quatpi()).sin()) / sqrt2();
   if(- pi() <= *this && *this <= pi())
     return (halfpi() - *this).sin();
   if(- twopi() <= *this && *this <= twopi())
