@@ -1544,7 +1544,7 @@ template <typename T> T Complex<T>::abs() const {
 }
 
 template <typename T> T Complex<T>::arg() const {
-  return atan2(_real, _imag);
+  return atan2(_imag, _real);
 }
 
 template <typename T> inline T& Complex<T>::real() {
