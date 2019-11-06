@@ -33,6 +33,9 @@ int main() {
   std::cout << log(exp(test)) << std::endl;
   std::cout << log(test) << std::endl;
   std::cout << exp(log(test)) << std::endl;
+  std::cout << test.atan() << std::endl;
+  std::cout << tan(test.atan()) << std::endl;
+  std::cout << (tan(test)).atan() << std::endl;
   return 0;
 }
 
