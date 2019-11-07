@@ -1019,7 +1019,7 @@ template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,b
   if(s & ((1 << INF) | (1 << NaN)))
     return *this;
   static const auto half(one() >> U(1));
-  static const auto four(one() >> U(2));
+  static const auto four(one() << U(2));
   static const auto five((one() << U(2)) + one());
   if(- half <= *this && *this <= half) {
     // arctan(x) = x - x^3/3 + x^5/5 - ...
@@ -1051,7 +1051,9 @@ template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,b
     static const auto atanhalf(half.atan());
     if(s & (1 << SIGN))
       return - (- *this).atan();
-    return atanhalf + (five * *this / (four + (*this << U(1))) - half).atan();
+    const auto v(five * *this / (four + (*this << U(1))) - half);
+    assert(v < *this);
+    return atanhalf + v.atan();
   }
   // N.B.
   //    in u = v case,
