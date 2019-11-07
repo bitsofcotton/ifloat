@@ -64,6 +64,8 @@ public:
 */
 
   T e[2];
+private:
+  inline int getMSB() const;
 };
 
 template <typename T, int bits> inline DUInt<T,bits>::DUInt() {
@@ -71,13 +73,13 @@ template <typename T, int bits> inline DUInt<T,bits>::DUInt() {
 }
 
 template <typename T, int bits> inline DUInt<T,bits>::DUInt(const int& src) {
-  *this ^= *this;
   e[0]   = src;
+  e[1]  ^= e[1];
 }
 
 template <typename T, int bits> inline DUInt<T,bits>::DUInt(const T& src) {
-  *this ^= *this;
   e[0]   = src;
+  e[1]  ^= e[1];
 }
 
 template <typename T, int bits> inline DUInt<T,bits>::DUInt(const DUInt<T,bits>& src) {
@@ -119,7 +121,7 @@ template <typename T, int bits> inline DUInt<T,bits>  DUInt<T,bits>::operator --
 }
 
 template <typename T, int bits> inline DUInt<T,bits>  DUInt<T,bits>::operator -  () const {
-  DUInt<T,bits> work(~ *this);
+  auto work(~ *this);
   return ++ work;
 }
 
@@ -180,23 +182,34 @@ template <typename T, int bits> inline DUInt<T,bits>  DUInt<T,bits>::operator / 
   return work /= src;
 }
 
+template <typename T, int bits> inline int DUInt<T,bits>::getMSB() const {
+  int shift(- 1);
+  if(! e[1]) {
+    if(! e[0])
+      return shift;
+    for(int i = bits - 1; 0 <= i; i --)
+      if(int(e[0] >> i) & 1) {
+        shift = i;
+        break;
+      }
+    return shift;
+  }
+  for(int i = bits - 1; 0 <= i; i --)
+    if(int(e[1] >> i) & 1) {
+      shift = i + bits;
+      break;
+    }
+  return shift;
+}
+
 template <typename T, int bits> inline DUInt<T,bits>& DUInt<T,bits>::operator /= (const DUInt<T,bits>& src) {
   const static auto hbits(bits >> 1);
   const static auto lmask((T(1) << hbits) - T(1));
   if(! *this)
     return *this;
-  int shift(0);
-  if(! src.e[1]) {
-    if(! src.e[0])
-      throw "Zero division";
-    for(int i = 0; i < bits; i ++)
-      if(int(src.e[0] >> i) & 1)
-        shift = i;
-  } else {
-    for(int i = 0; i < bits; i ++)
-      if(int(src.e[1] >> i) & 1)
-        shift = i + bits;
-  }
+  const auto shift(src.getMSB());
+  if(shift < 0)
+    throw "Zero division";
   const auto dblocks(shift / hbits + 1);
   const auto lshift(dblocks * hbits - shift - 1);
   assert(0 <= lshift && lshift < hbits && !((shift + lshift + 1) % hbits));
@@ -204,16 +217,8 @@ template <typename T, int bits> inline DUInt<T,bits>& DUInt<T,bits>::operator /=
   const auto dlast((dblocks - 1) & 1 ? dd.e[(dblocks - 1) >> 1] >> hbits
                                      : dd.e[(dblocks - 1) >> 1] &  lmask);
   assert(dlast);
-  int ltshift(0);
-  if(! e[1]) {
-    for(int i = 0; i < bits; i ++)
-      if(int(e[0] >> i) & 1)
-        ltshift = i;
-  } else {
-    for(int i = 0; i < bits; i ++)
-      if(int(e[1] >> i) & 1)
-        ltshift = i + bits;
-  }
+        auto ltshift(getMSB());
+  assert(0 <= ltshift);
   ltshift = bits * 2 - 1 - ltshift;
   *this <<= ltshift;
   assert(*this);
@@ -459,15 +464,11 @@ template <typename T, int bits> std::istream&  operator >> (std::istream& is, DU
   }
   while(! is.eof() ) {
     const auto buf(is.get());
-    switch(buf) {
-    case '0': case '1': case '2': case '3': case '4':
-    case '5': case '6': case '7': case '8': case '9':
+    if('0' <= buf && buf <= '9') {
       v *= ten;
       v += DUInt<T,bits>(int(buf - '0'));
-      break;
-    default:
+    } else
       goto ensure;
-    }
   }
  ensure:
   return is;
@@ -556,9 +557,6 @@ private:
 
 template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,bits,U>::SimpleFloat() {
   assert(0 < bits && ! (bits & 1));
-  s ^= s;
-  m ^= m;
-  e ^= e;
 }
 
 template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,bits,U>::SimpleFloat(const int& src) {
@@ -568,6 +566,7 @@ template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,b
   s |= safeAdd(e, normalize(m));
   if(src < 0)
     s |= 1 << SIGN;
+  ensureFlag();
 }
 
 template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,bits,U>::SimpleFloat(const SimpleFloat<T,W,bits,U>& src) {
@@ -594,13 +593,10 @@ template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,b
 }
 
 template <typename T, typename W, int bits, typename U>        SimpleFloat<T,W,bits,U>& SimpleFloat<T,W,bits,U>::operator += (const SimpleFloat<T,W,bits,U>& src) {
+  // XXX
   s |= src.s & ((1 << INF) | (1 << NaN));
-  if(! m) {
-    m = src.m;
-    e = src.e;
-    s = src.s;
-    return *this;
-  }
+  if(! m)
+    return *this = src;
   if(! src.m)
     return *this;
   if(! ((s & (1 << SIGN)) ^ (src.s & (1 << SIGN)))) {
@@ -644,6 +640,7 @@ template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,b
 }
 
 template <typename T, typename W, int bits, typename U>        SimpleFloat<T,W,bits,U>& SimpleFloat<T,W,bits,U>::operator *= (const SimpleFloat<T,W,bits,U>& src) {
+  // XXX Inf:
   if(! prepMul(src))
     return *this;
   if((! m) || (! src.m)) {
@@ -673,6 +670,7 @@ template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,b
 }
 
 template <typename T, typename W, int bits, typename U>        SimpleFloat<T,W,bits,U>& SimpleFloat<T,W,bits,U>::operator /= (const SimpleFloat<T,W,bits,U>& src) {
+  // XXX Inf:
   if(! prepMul(src))
     return *this;
   if(! src.m) {
@@ -739,6 +737,7 @@ template <typename T, typename W, int bits, typename U> inline bool             
 }
 
 template <typename T, typename W, int bits, typename U> inline bool             SimpleFloat<T,W,bits,U>::operator <  (const SimpleFloat<T,W,bits,U>& src) const {
+  // XXX NaN, Inf:
   if((s & (1 << SIGN)) ^ (src.s & (1 << SIGN)))
     return s & (1 << SIGN);
   if(s & (1 << SIGN))
@@ -857,7 +856,7 @@ template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,b
     pmone.s |= s & (1 << SIGN);
     return this->floor() + pmone;
   }
-  return *this;
+  return this->floor();
 }
 
 template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,bits,U> SimpleFloat<T,W,bits,U>::abs() const {
@@ -869,14 +868,15 @@ template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,b
 template <typename T, typename W, int bits, typename U> SimpleFloat<T,W,bits,U> SimpleFloat<T,W,bits,U>::log() const {
   const static SimpleFloat<T,W,bits,U> einv(one() / one().exp());
   const static SimpleFloat<T,W,bits,U> one_einv(one() + einv);
+  if((s & (1 << SIGN)) && this->m)
+    throw "Negative log";
   if(s & ((1 << INF) | (1 << NaN)))
     return *this;
-  if(! *this) {
+  if(! this->m) {
     auto work(*this);
     work.s |= (1 << INF) | (1 << SIGN);
     return work;
   }
-  assert(! (s & (1 << SIGN)));
   if(einv <= *this && *this <= one_einv) {
     // ln(x) = (x - 1) - (x - 1)^2/2 + (x-1)^3/3- ...
     const auto dx(*this - one());
@@ -979,7 +979,7 @@ template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,b
     return res;
   }
   if(- halfpi() <= *this && *this <= halfpi())
-    return ((*this - quatpi()).sin() + (*this - quatpi()).cos()) / sqrt2();
+    return ((*this - quatpi()).cos() + (*this - quatpi()).sin()) / sqrt2();
   if(- pi() <= *this && *this <= pi())
     return (halfpi() - *this).cos();
   if(- twopi() <= *this && *this <= twopi())
@@ -1019,6 +1019,8 @@ template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,b
   if(s & ((1 << INF) | (1 << NaN)))
     return *this;
   static const auto half(one() >> U(1));
+  static const auto four(one() << U(2));
+  static const auto five((one() << U(2)) + one());
   if(- half <= *this && *this <= half) {
     // arctan(x) = x - x^3/3 + x^5/5 - ...
     const auto sqx(*this * *this);
@@ -1040,13 +1042,18 @@ template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,b
   //  y := x / (1.25 - .5 * x) then,
   //  (1.25 - .5 * x) * y = x,
   //  (5 - 2x) * y = 4 x
-  //  x = 5y / (4 + 2) = 5 / 6 * y
+  //  x = 5y / (4 + 2y),
+  //     y - x = ((4 + 2y) * y - 5y) / (4 + 2y)
+  //           = y * (2y - 1) / (4 + 2y)
+  //     so 0 <= y and 0 < y case, this makes decreasing function.
+  //       (v = x - .5 and 0 <= 2y - 1)
   if(- two() <= *this && *this <= two()) {
     static const auto atanhalf(half.atan());
-    static const auto five_six(SimpleFloat<T,W,bits,U>(5) / SimpleFloat<T,W,bits,U>(6));
     if(s & (1 << SIGN))
       return - (- *this).atan();
-    return atanhalf + (five_six * *this - half).atan();
+    const auto v(five * *this / (four + (*this << U(1))) - half);
+    assert(v < *this);
+    return atanhalf + v.atan();
   }
   // N.B.
   //    in u = v case,
@@ -1184,6 +1191,9 @@ template <typename T, typename W, int bits, typename U> std::istream& operator >
       sign  = false;
       fsign = false;
       break;
+    case '.':
+      throw "not implemented now";
+      break;
     case '0': case '1': case '2': case '3': case '4':
     case '5': case '6': case '7': case '8': case '9':
       if(mode) {
@@ -1214,12 +1224,12 @@ template <typename T, typename W, int bits, typename U> inline bool isinf(const 
   return src.s & (1 << src.INF);
 }
 
-template <typename T, typename W, int bits, typename U> inline bool isfinite(const SimpleFloat<T,W,bits,U>& src) {
-  return ! (src.s & ((1 << src.INF) | (1 << src.NaN)));
-}
-
 template <typename T, typename W, int bits, typename U> inline bool isnan(const SimpleFloat<T,W,bits,U>& src) {
   return src.s & (1 << src.NaN);
+}
+
+template <typename T, typename W, int bits, typename U> inline bool isfinite(const SimpleFloat<T,W,bits,U>& src) {
+  return ! (src.s & ((1 << src.INF) | (1 << src.NaN)));
 }
 
 template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,bits,U> floor(const SimpleFloat<T,W,bits,U>& src) {
@@ -1290,8 +1300,11 @@ template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,b
 }
 
 template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,bits,U> pow(const SimpleFloat<T,W,bits,U>& src, const SimpleFloat<T,W,bits,U>& dst) {
-  if(! dst)
+  if(! dst) {
+    if(! src)
+      throw "0^0";
     return dst.one();
+  }
   return exp(log(src) * dst);
 }
 
@@ -1346,7 +1359,6 @@ public:
   inline T& imag();
   inline const T& real() const;
   inline const T& imag() const;
-  inline Complex<T>& setByPolar(const T& abs, const T& arg);
   T _real;
   T _imag;
 };
@@ -1387,16 +1399,11 @@ template <typename T> inline Complex<T>::~Complex() {
 }
 
 template <typename T> inline Complex<T> Complex<T>::operator ~ () const {
-  auto result(*this);
-  result._imag = - _imag;
-  return result;
+  return Complex<T>(  _real, - _imag);
 }
 
 template <typename T> inline Complex<T> Complex<T>::operator - () const {
-  Complex<T> result;
-  result._real = - _real;
-  result._imag = - _imag;
-  return result;
+  return Complex<T>(- _real, - _imag);
 }
 
 template <typename T> inline Complex<T> Complex<T>::operator + (const Complex<T>& s) const {
@@ -1453,8 +1460,7 @@ template <typename T> inline Complex<T>& Complex<T>::operator /= (const T& s) {
 }
 
 template <typename T> inline Complex<T> Complex<T>::operator / (const Complex<T>& s) const {
-  const auto denom(s._real * s._real + s._imag * s._imag);
-  return (*this * (~ s)) / denom;
+  return (*this * (~ s)) / (s._real * s._real + s._imag * s._imag);
 }
 
 template <typename T> inline Complex<T>& Complex<T>::operator /= (const Complex<T>& s) {
@@ -1470,7 +1476,7 @@ template <typename T> inline bool Complex<T>::operator != (const Complex<T>& s) 
 }
 
 template <typename T> inline bool Complex<T>::operator ! () const {
-  return !_real || !_imag;
+  return !_real && !_imag;
 }
 
 template <typename T> inline Complex<T> Complex<T>::operator & (const Complex<T>& s) const {
@@ -1514,30 +1520,30 @@ template <typename T> inline bool Complex<T>::operator || (const Complex<T>& s) 
   return *this || s;
 }
 
-template <typename T> Complex<T>& Complex<T>::operator =  (const Complex<T>& s) {
+template <typename T> inline Complex<T>& Complex<T>::operator =  (const Complex<T>& s) {
   _real = s._real;
   _imag = s._imag;
   return *this;
 }
 
-template <typename T> Complex<T>& Complex<T>::operator =  (Complex<T>&& s) {
+template <typename T> inline Complex<T>& Complex<T>::operator =  (Complex<T>&& s) {
   _real = move(s._real);
   _imag = move(s._imag);
   return *this;
 }
 
-template <typename T> T& Complex<T>::operator [] (const size_t& i) {
+template <typename T> inline T& Complex<T>::operator [] (const size_t& i) {
   assert(0 <= i && i < 2);
   if(i)
-    return _real;
-  return _imag;
+    return _imag;
+  return _real;
 }
 
-template <typename T> Complex<T>::operator bool () const {
+template <typename T> inline Complex<T>::operator bool () const {
   return ! (! *this);
 }
 
-template <typename T> Complex<T>::operator T () const {
+template <typename T> inline Complex<T>::operator T () const {
   return this->_real;
 }
 
@@ -1568,12 +1574,6 @@ template <typename T> inline const T& Complex<T>::real() const {
 
 template <typename T> inline const T& Complex<T>::imag() const {
   return _imag;
-}
-
-template <typename T> Complex<T>& Complex<T>::setByPolar(const T& abs, const T& arg) {
-  _real = abs * cos(arg);
-  _imag = abs * sin(arg);
-  return *this;
 }
 
 template <typename T> std::ostream& operator << (std::ostream& os, const Complex<T>& v) {
