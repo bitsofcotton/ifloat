@@ -548,7 +548,6 @@ public:
   const SimpleFloat<T,W,bits,U>& sqrt2()  const;
 private:
   template <typename V> inline int normalize(V& src) const;
-  inline bool prepMul(const SimpleFloat<T,W,bits,U>& src);
   inline SimpleFloat<T,W,bits,U>& ensureFlag();
   inline unsigned char safeAdd(U& dst, const U& src);
   inline char residue2() const;
@@ -835,15 +834,6 @@ template <typename T, typename W, int bits, typename U> template <typename V> in
   assert(0 <= shift);
   src <<= shift;
   return - shift;
-}
-
-template <typename T, typename W, int bits, typename U> inline bool SimpleFloat<T,W,bits,U>::prepMul(const SimpleFloat<T,W,bits,U>& src) {
-  s ^= src.s & (1 << SIGN);
-  if(! (isfinite(*this) && isfinite(src))) {
-    s |= src.e & ((1 << INF) | (1 << NaN));
-    return false;
-  }
-  return true;
 }
 
 template <typename T, typename W, int bits, typename U> SimpleFloat<T,W,bits,U>& SimpleFloat<T,W,bits,U>::ensureFlag() {
