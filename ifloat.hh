@@ -384,7 +384,9 @@ template <typename T, int bits> inline DUInt<T,bits>& DUInt<T,bits>::operator = 
 }
 
 template <typename T, int bits> inline bool      DUInt<T,bits>::operator <  (const DUInt<T,bits>& src) const {
-  return (!e[1] ? (!src.e[1] ? e[0] < src.e[0] : true) : (e[1] == src.e[1] ? e[0] < src.e[0] : e[1] < src.e[1]));
+  if(e[1])
+    return e[1] == src.e[1] ? e[0] < src.e[0] : e[1] < src.e[1];
+  return src.e[1] ? true : e[0] < src.e[0];
 }
 
 template <typename T, int bits> inline bool      DUInt<T,bits>::operator <= (const DUInt<T,bits>& src) const {
@@ -593,8 +595,15 @@ template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,b
 }
 
 template <typename T, typename W, int bits, typename U>        SimpleFloat<T,W,bits,U>& SimpleFloat<T,W,bits,U>::operator += (const SimpleFloat<T,W,bits,U>& src) {
-  // XXX
-  s |= src.s & ((1 << INF) | (1 << NaN));
+  if((s |= src.s & (1 << NaN)) & (1 << NaN))
+    return *this;
+  if(s & (1 << INF)) {
+    if(src.s & (1 << INF))
+      s |= 1 << NaN;
+    return *this;
+  }
+  if(src.s & (1 << INF))
+    return *this = src;
   if(! m)
     return *this = src;
   if(! src.m)
@@ -640,8 +649,10 @@ template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,b
 }
 
 template <typename T, typename W, int bits, typename U>        SimpleFloat<T,W,bits,U>& SimpleFloat<T,W,bits,U>::operator *= (const SimpleFloat<T,W,bits,U>& src) {
-  // XXX Inf:
-  if(! prepMul(src))
+  if((s |= src.s & (1 << NaN)) & (1 << NaN))
+    return *this;
+  s ^= src.s & (1 << SIGN);
+  if((s |= src.s & (1 << INF)) & (1 << INF))
     return *this;
   if((! m) || (! src.m)) {
     m ^= m;
@@ -670,8 +681,14 @@ template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,b
 }
 
 template <typename T, typename W, int bits, typename U>        SimpleFloat<T,W,bits,U>& SimpleFloat<T,W,bits,U>::operator /= (const SimpleFloat<T,W,bits,U>& src) {
-  // XXX Inf:
-  if(! prepMul(src))
+  if((s |= src.s & (1 << NaN)) & (1 << NaN))
+    return *this;
+  s ^= src.s & (1 << SIGN);
+  if(! (s & (1 << INF)) && (src.s & (1 << INF))) {
+    s |= 1 << DWRK;
+    return ensureFlag();
+  }
+  if(s & (1 << INF))
     return *this;
   if(! src.m) {
     s |= 1 << NaN;
@@ -733,16 +750,31 @@ template <typename T, typename W, int bits, typename U> inline bool             
 }
 
 template <typename T, typename W, int bits, typename U> inline bool             SimpleFloat<T,W,bits,U>::operator != (const SimpleFloat<T,W,bits,U>& src) const {
-  return !(!m && !src.m) && (s != src.s || e != src.e || m != src.m);
+  return ((s | src.s) & ((1 << INF) | (1 << NaN))) ||
+           (s != src.s || e != src.e || m != src.m);
 }
 
 template <typename T, typename W, int bits, typename U> inline bool             SimpleFloat<T,W,bits,U>::operator <  (const SimpleFloat<T,W,bits,U>& src) const {
-  // XXX NaN, Inf:
-  if((s & (1 << SIGN)) ^ (src.s & (1 << SIGN)))
-    return s & (1 << SIGN);
-  if(s & (1 << SIGN))
-    return - *this > - src;
-  return (!m ? (!src.m ? false : true) : (!src.m ? false : (e < src.e ? true : (e == src.e ? m < src.m : false))));
+  if((s | src.s) & (1 << NaN))
+    throw "compair NaN";
+  const auto s_is_minus(s & (1 << SIGN));
+  if(s_is_minus ^ (src.s & (1 << SIGN)))
+    return s_is_minus;
+  if(s & (1 << INF)) {
+    if(src.s & (1 << INF))
+      throw "compair INF";
+    return s_is_minus;
+  }
+  if(src.s & (1 << INF))
+    return ! s_is_minus;
+  if(m && src.m) {
+    if(e < src.e)
+      return ! s_is_minus;
+    if(e == src.e)
+      return s_is_minus ? src.m < m : m < src.m;
+    return s_is_minus;
+  }
+  return !m ? (!src.m ? false : ! s_is_minus) : s_is_minus;
 }
 
 template <typename T, typename W, int bits, typename U> inline bool             SimpleFloat<T,W,bits,U>::operator <= (const SimpleFloat<T,W,bits,U>& src) const {
@@ -866,8 +898,8 @@ template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,b
 }
 
 template <typename T, typename W, int bits, typename U> SimpleFloat<T,W,bits,U> SimpleFloat<T,W,bits,U>::log() const {
-  const static SimpleFloat<T,W,bits,U> einv(one() / one().exp());
-  const static SimpleFloat<T,W,bits,U> one_einv(one() + einv);
+  const static auto einv(one() / one().exp());
+  const static auto one_einv(one() + einv);
   if((s & (1 << SIGN)) && this->m)
     throw "Negative log";
   if(s & ((1 << INF) | (1 << NaN)))
@@ -904,7 +936,6 @@ template <typename T, typename W, int bits, typename U> SimpleFloat<T,W,bits,U> 
       result += one();
       work   *= iea[1];
     }
-    assert(work <= one_einv);
   } else {
     for(int i = min(ea.size(), iea.size()) - 1; 0 < i; i --)
       if(work <= iea[i]) {
@@ -915,8 +946,8 @@ template <typename T, typename W, int bits, typename U> SimpleFloat<T,W,bits,U> 
       result -= one();
       work   *= ea[1];
     }
-    assert(einv <= work);
   }
+  assert(einv <= work && work <= one_einv);
   return result += work.log();
 }
 
