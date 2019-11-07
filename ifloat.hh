@@ -1019,6 +1019,7 @@ template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,b
   if(s & ((1 << INF) | (1 << NaN)))
     return *this;
   static const auto half(one() >> U(1));
+  static const auto three((one() << U(1)) + one());
   static const auto four(one() << U(2));
   static const auto five((one() << U(2)) + one());
   if(- half <= *this && *this <= half) {
@@ -1047,7 +1048,7 @@ template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,b
   //           = y * (2y - 1) / (4 + 2y)
   //     so 0 <= y and 0 < y case, this makes decreasing function.
   //       (v = x - .5 and 0 <= 2y - 1)
-  if(- two() <= *this && *this <= two()) {
+  if(- three <= *this && *this <= three) {
     static const auto atanhalf(half.atan());
     if(s & (1 << SIGN))
       return - (- *this).atan();
@@ -1064,7 +1065,7 @@ template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,b
   //    in Y := 2 / x case,
   //  atan(Y) = 2 atan(1 + 2 / Y)
   const auto y(one() + (one() / (*this)) << U(1));
-  assert(- two() <= y && y <= two());
+  assert(- three <= y && y <= three);
   return y.atan() << U(1);
 }
 
