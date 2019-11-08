@@ -690,6 +690,7 @@ template <typename T, typename W, int bits, typename U>        SimpleFloat<T,W,b
   if(s & (1 << INF))
     return *this;
   if(! src.m) {
+    throw "Zero division";
     s |= 1 << NaN;
     return *this;
   }
@@ -1084,7 +1085,7 @@ template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,b
   //                = atan(2 / x)
   //    in Y := 2 / x case,
   //  atan(Y) = 2 atan(1 + 2 / Y)
-  const auto y(one() + ((one() / (*this)) << U(1)));
+  const auto y(one() + two() / (*this));
   assert(- two() <= y && y <= two());
   return y.atan() << U(1);
 }
@@ -1097,7 +1098,7 @@ template <typename T, typename W, int bits, typename U> const vector<SimpleFloat
   ebuf.push_back(ebuf[0].exp());
   for(int i = 1; 0 <= i; i ++) {
     const auto en(ebuf[i] * ebuf[i]);
-    if(isfinite(en))
+    if(en && isfinite(en))
       ebuf.push_back(en);
     else
       break;
@@ -1110,9 +1111,9 @@ template <typename T, typename W, int bits, typename U> const vector<SimpleFloat
   if(iebuf.size())
     return iebuf;
   const auto& ea(exparray());
-  for(int i = 0; 0 <= i && 0 < ea.size(); i ++) {
+  for(int i = 0; 0 <= i && i < ea.size(); i ++) {
     const auto ien(one() / ea[i]);
-    if(isfinite(ien))
+    if(ien && isfinite(ien))
       iebuf.push_back(ien);
     else
       break;
