@@ -12,6 +12,7 @@ public:
   inline DUInt(const int& src);
   inline DUInt(const T& src);
   inline DUInt(const DUInt<T,bits>& src);
+  inline DUInt(const DUInt<DUInt<T,bits>,bits*2>& src);
   inline DUInt(DUInt<T,bits>&& src);
   inline ~DUInt();
   
@@ -42,6 +43,7 @@ public:
   inline DUInt<T,bits>& operator ^= (const DUInt<T,bits>& src);
   inline DUInt<T,bits>  operator ~  ()                         const;
   inline DUInt<T,bits>& operator =  (const DUInt<T,bits>& src);
+  inline DUInt<T,bits>& operator =  (const DUInt<DUInt<T,bits>,bits*2>& src);
   inline DUInt<T,bits>& operator =  (const int& src);
   inline DUInt<T,bits>& operator =  (DUInt<T,bits>&& src);
   inline bool           operator <  (const DUInt<T,bits>& src) const;
@@ -83,6 +85,10 @@ template <typename T, int bits> inline DUInt<T,bits>::DUInt(const T& src) {
 }
 
 template <typename T, int bits> inline DUInt<T,bits>::DUInt(const DUInt<T,bits>& src) {
+  *this = src;
+}
+
+template <typename T, int bits> inline DUInt<T,bits>::DUInt(const DUInt<DUInt<T,bits>,bits*2>& src) {
   *this = src;
 }
 
@@ -369,6 +375,10 @@ template <typename T, int bits> inline DUInt<T,bits>& DUInt<T,bits>::operator = 
   e[0] = src.e[0];
   e[1] = src.e[1];
   return *this;
+}
+
+template <typename T, int bits> inline DUInt<T,bits>& DUInt<T,bits>::operator =  (const DUInt<DUInt<T,bits>,bits*2>& src) {
+  return *this = src.e[0];
 }
 
 template <typename T, int bits> inline DUInt<T,bits>& DUInt<T,bits>::operator =  (const int& src) {
@@ -662,7 +672,7 @@ template <typename T, typename W, int bits, typename U>        SimpleFloat<T,W,b
   s |= safeAdd(e, src.e);
   s |= safeAdd(e, normalize(mm));
   s |= safeAdd(e, bits);
-  m  = T(mm >> bits);
+  m  = T(mm >> U(bits));
   return ensureFlag();
 }
 
@@ -699,7 +709,7 @@ template <typename T, typename W, int bits, typename U>        SimpleFloat<T,W,b
   auto mm((W(m) << bits) / W(src.m));
   s |= safeAdd(e, - src.e);
   s |= safeAdd(e, normalize(mm));
-  m  = T(mm >> bits);
+  m  = T(mm >> U(bits));
   return ensureFlag();
 }
 
