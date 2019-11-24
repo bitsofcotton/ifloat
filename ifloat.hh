@@ -1178,7 +1178,7 @@ template <typename T, typename W, int bits, typename U> const SimpleFloat<T,W,bi
 template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,bits,U> SimpleFloat<T,W,bits,U>::sqrt() const {
   if(s & ((1 << INF) | (1 << NaN)))
     return *this;
-  auto res(this->log() >> U(1)).exp();
+  auto res((this->log() >> U(1)).exp());
   // get better accuracy (is this enough?, double accuracy on one loop.)
   // newton's method: 0 == f'(x_n) (x_{n+1} - x_n) + f(x_n)
   //            x_{n+1} := x_n - f(x_n)/f'(x_n).
