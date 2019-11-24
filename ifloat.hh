@@ -262,7 +262,7 @@ template <typename T, int bits> inline DUInt<T,bits>& DUInt<T,bits>::operator /=
     div = (DUInt<T,bits>(d) * src) << tshift;
     for(int j = 0; j < 4 && ! (div <= *this); j ++) {
       -- d;
-      div = (DUInt<T,bits>(d) * src) << tshift;
+      div -= src << tshift;
     }
     assert(div <= *this);
     *this -= div;
@@ -1643,7 +1643,7 @@ template <typename T> Complex<T> sqrt(const Complex<T>& s) {
 }
 
 template <typename T> Complex<T> csin(const Complex<T>& s) {
-  return (exp(Complex<T>(T(0), s)) - exp(Complex<T>(T(0), - s))) / T(2);
+  return (exp(Complex<T>(T(0), s)) - exp(Complex<T>(T(0), - s))) / Complex<T>(T(0), T(2));
 }
 
 template <typename T> Complex<T> ccos(const Complex<T>& s) {
