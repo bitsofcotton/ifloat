@@ -662,12 +662,12 @@ template <typename T, typename W, int bits, typename U>        SimpleFloat<T,W,b
   if((s |= src.s & (1 << NaN)) & (1 << NaN))
     return *this;
   s ^= src.s & (1 << SIGN);
-  if((s |= src.s & (1 << INF)) & (1 << INF))
-    return *this;
   if((! m) || (! src.m)) {
     s |= 1 << DWRK;
     return ensureFlag();
   }
+  if((s |= src.s & (1 << INF)) & (1 << INF))
+    return *this;
   auto mm(W(m) * W(src.m));
   s |= safeAdd(e, src.e);
   s |= safeAdd(e, normalize(mm));
@@ -703,7 +703,7 @@ template <typename T, typename W, int bits, typename U>        SimpleFloat<T,W,b
     return *this;
   }
   if(! src.m) {
-  //  throw "Zero division";
+    throw "Zero division";
     s |= 1 << NaN;
     return *this;
   }
@@ -773,15 +773,13 @@ template <typename T, typename W, int bits, typename U> inline bool             
 
 template <typename T, typename W, int bits, typename U> inline bool             SimpleFloat<T,W,bits,U>::operator <  (const SimpleFloat<T,W,bits,U>& src) const {
   if((s | src.s) & (1 << NaN))
-    return true;
-    // throw "compair NaN";
+    throw "compair NaN";
   const auto s_is_minus(s & (1 << SIGN));
   if(s_is_minus ^ (src.s & (1 << SIGN)))
     return s_is_minus;
   if(s & (1 << INF)) {
     if(src.s & (1 << INF))
-      //throw "compair INF";
-      ;
+      throw "compair INF";
     return s_is_minus;
   }
   if(src.s & (1 << INF))
@@ -858,27 +856,22 @@ template <typename T, typename W, int bits, typename U> template <typename V> in
   return - shift;
 }
 
-template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,bits,U>& SimpleFloat<T,W,bits,U>::ensureFlag() {
+template <typename T, typename W, int bits, typename U> SimpleFloat<T,W,bits,U>& SimpleFloat<T,W,bits,U>::ensureFlag() {
   if(! m || (s & (1 << DWRK))) {
     e ^= e;
     m ^= m;
-    s &= ~ (1 << DWRK);
+    s &= ~ ((1 << DWRK) | (1 << INF));
   }
   return * this;
 }
 
 template <typename T, typename W, int bits, typename U> inline unsigned char SimpleFloat<T,W,bits,U>::safeAdd(U& dst, const U& src) {
   const auto dst0(dst);
-  unsigned char ss(0);
   dst += src;
   if((dst0 > 0 && src > 0 && dst < 0) ||
-     (dst0 < 0 && src < 0 && dst > 0)) {
-    if(dst < 0)
-      ss |= 1 << INF;
-    else
-      ss |= 1 << DWRK;
-  }
-  return ss;
+     (dst0 < 0 && src < 0 && dst > 0))
+    return 1 << (dst < 0 ? INF : DWRK);
+  return 0;
 }
 
 template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,bits,U> SimpleFloat<T,W,bits,U>::floor() const {
@@ -895,12 +888,13 @@ template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,b
 }
 
 template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,bits,U> SimpleFloat<T,W,bits,U>::ceil() const {
-  if(*this - this->floor()) {
+  const auto fl(this->floor);
+  if(*this - fl) {
     auto pmone(one());
     pmone.s |= s & (1 << SIGN);
-    return this->floor() + pmone;
+    return fl + pmone;
   }
-  return this->floor();
+  return fl;
 }
 
 template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,bits,U> SimpleFloat<T,W,bits,U>::abs() const {
