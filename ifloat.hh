@@ -856,7 +856,7 @@ template <typename T, typename W, int bits, typename U> template <typename V> in
   return - shift;
 }
 
-template <typename T, typename W, int bits, typename U> SimpleFloat<T,W,bits,U>& SimpleFloat<T,W,bits,U>::ensureFlag() {
+template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,bits,U>& SimpleFloat<T,W,bits,U>::ensureFlag() {
   if(! m || (s & (1 << DWRK))) {
     e ^= e;
     m ^= m;
