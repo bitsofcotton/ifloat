@@ -21,17 +21,6 @@ typedef f_t T;
 typedef Complex<T> U;
 
 int main() {
-  sranddev();
-  di5_t p(0), q(0);
-  for(int i = 0; i < 1024/32; i ++) {
-    p += di5_t(di4_t(di3_t(di2_t(di_t(rand()))))) << short(i * 32);
-    q += di5_t(di4_t(di3_t(di2_t(di_t(rand()))))) << short(i * 32);
-  }
-  std::cerr << p % q << std::endl;
-  std::cerr << f_t(1).atan() << std::endl;
-  std::cerr << f_t(2).sqrt() << std::endl;
-  std::cerr << f_t(1) / f_t(1).exp() << std::endl;
-  return 0;
   di_t f(1);
   f_t  ff(1);
   for(int i = 1; i < 64; i ++) {
