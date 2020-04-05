@@ -156,31 +156,26 @@ template <typename T, int bits> inline DUInt<T,bits>& DUInt<T,bits>::operator -=
 }
 
 template <typename T, int bits> inline DUInt<T,bits>  DUInt<T,bits>::operator *  (const DUInt<T,bits>& src) const {
-  const static auto hbits(bits >> 1);
-  const static auto lmask((T(1) << hbits) - T(1));
-  const auto d0(e[0] & lmask);
-  const auto d1(e[0] >> hbits);
-  const auto d2(e[1] & lmask);
-  const auto d3(e[1] >> hbits);
-  const auto s0(src.e[0] & lmask);
-  const auto s1(src.e[0] >> hbits);
-  const auto s2(src.e[1] & lmask);
-  const auto s3(src.e[1] >> hbits);
-  // (d0 + d1 * p1 + d2 * p2 + d3 * p3) * (s0 + s1 * p1 + s2 * p2 + s3 * p3) ==
-  // ... ==
-  // d0 * s0 + (d0 * s1 + s0 * d1) * p1 +
-  //   (d0 * s2 + d2 * s0 + d1 * s1) * p2 +
-  //   (d0 * s3 + d2 * s1 + d1 * s2 + d3 * s0) * p3
-  // N.B. not used:
-  //   dk * sl + dl * sk == dk * sk + sl * dl - (dk - dl) * (sk - sl)
-  return DUInt<T,bits>(d0 * s0) +
-       ((DUInt<T,bits>(s0 * d1) + DUInt<T,bits>(s1 * d0)) << hbits) +
-       (DUInt<T,bits>(s0 * d2 + s2 * d0 + s1 * d1) << bits) +
-       (DUInt<T,bits>(s0 * d3 + s3 * d0 + s1 * d2 + s2 * d1) << (bits + hbits));
+  auto result(*this);
+  return result *= src;
 }
 
 template <typename T, int bits> inline DUInt<T,bits>& DUInt<T,bits>::operator *= (const DUInt<T,bits>& src) {
-  return *this = *this * src;
+  const auto cache(*this);
+  *this ^= *this;
+  for(int i = 0; i < bits; i ++)
+    if(int(src >> i) & 1)
+      *this += cache << i;
+  // N.B.
+  //   If we work with multiply with table and summing up with simple window,
+  //   and the parallel condition, we can reduce better:
+  //     with bit pair [x1, x2, ..., xn], [y1, y2, ..., yn],
+  //     make table [[x1*y1, ..., x1*yn],...,[xn*y1, ... xn*yn]],
+  //     then counter orthogonal sum-up with parallel.
+  //     we get [z1, ... zn] == [x1*y1, ..., sum_i+j=k(x_i*y_j), ..., xn*yn],
+  //     then sum-up with certain bit adder and fixing one by one:
+  //     r1 := x1*y1, s1 := ((x1*y1) >> 1) + z2, r2 := s2 & 1, ... and so on.
+  return *this;
 }
 
 template <typename T, int bits> inline DUInt<T,bits>  DUInt<T,bits>::operator /  (const DUInt<T,bits>& src) const {
