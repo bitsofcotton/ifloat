@@ -370,7 +370,7 @@ template <typename T, int bits> inline bool      DUInt<T,bits>::operator >= (con
 }
 
 template <typename T, int bits> inline bool      DUInt<T,bits>::operator == (const DUInt<T,bits>& src) const {
-  return ! (*this - src);
+  return ! (*this ^ src);
 }
 
 template <typename T, int bits> inline bool      DUInt<T,bits>::operator != (const DUInt<T,bits>& src) const {
