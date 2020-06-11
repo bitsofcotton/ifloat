@@ -7,12 +7,12 @@ DUInt を再起的に使用すると Karatuba と比べてもとても遅いで�
 std::limits に(まだ)対応していません。std::complex とは現状うまく動きません。  
 AMD64 の処理系ととある実装によっては xmm0 レジスタの信頼性が損なわれる危険性がある場合があります。
 その場合には clang に -mno-sse などの複数のオプションを付加して、簡易的にそれが影響しているかをデバグできます。  
-また、指数部が極端に大きなまたは小さな値を使うことが出来ることが若干のアドバンテージです。
+また、指数部が仮数部の桁数程度に大きなまたは小さな値を使うことが出来ることが若干のアドバンテージです。
 
 # 使い方
     #include "ifloat.hh"
     ...
-    typedef SimpleFloat<unsigned long long, DUInt<unsigned long long, 64>, 64, short> float_t;
+    typedef SimpleFloat<DUInt<uint64_t, 64>, DUInt<DUInt<uint64_t, 64>, 128>, 128, Signed<DUInt<uint64_t, 64>, 128> > float_t;
     ...
       ...
       float_t a(1);

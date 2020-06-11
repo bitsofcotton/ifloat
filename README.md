@@ -7,12 +7,12 @@ This is another simpler implementation.
 # Tips
 (Still) not compatible with std::limits. neither not works with std::complex.
 Some implementation with AMD64, there's a little possibility to break xmm0 register (not the CPU matter), so in that case, we can choose this library with -mno-sse option and so on.  
-There's a little advantage to use this library when we met the condition exponent value to be large or tiny.
+There's a little advantage to use this library when we met the condition exponent value to be huge or tinier.
 
 # How to use
     #include "ifloat.hh"
     ...
-    typedef SimpleFloat<unsigned long long, DUInt<unsigned long long, 64>, 64, short> float_t;
+    typedef SimpleFloat<DUInt<uint64_t, 64>, DUInt<DUInt<uint64_t, 64>, 128>, 128, Signed<DUInt<uint64_t, 64>, 128> > float_t;
     ...
       ...
       float_t a(1);
