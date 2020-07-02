@@ -13,9 +13,10 @@ typedef DUInt<di3_t, 512> di4_t;
 typedef DUInt<di4_t, 1024> di5_t;
 typedef DUInt<di5_t, 2048> di6_t;
 typedef DUInt<di6_t, 4096> di7_t;
+typedef DUInt<di7_t, 8192> di8_t;
 typedef Signed<DUInt<uint64_t, 64>, 128> i128_t;
 typedef SimpleFloat<uint32_t, uint64_t, 32, i128_t> fshort_t;
-typedef SimpleFloat<di6_t, di7_t, 4096, i128_t> f_t;
+typedef SimpleFloat<di7_t, di8_t, 8192, Signed<di7_t, 8192> > f_t;
 typedef f_t T;
 typedef Complex<T> U;
 
