@@ -1229,6 +1229,8 @@ template <typename T, typename W, int bits, typename U> inline SimpleFloat<T,W,b
   // newton's method: 0 == f'(x_n) (x_{n+1} - x_n) + f(x_n)
   //            x_{n+1} := x_n - f(x_n)/f'(x_n).
   //         where f(x) := x_n * x_n - *this
+  if(! res)
+    return res;
   return (res + *this / res) >> U(1);
 }
 
