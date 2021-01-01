@@ -1,7 +1,7 @@
 # bitsofcotton/ifloat
-This is integer wrapper for working float, due to non reliable, nor complex, nor no FPU implementation.
+This is a integer wrapper for working float, due to non reliable, nor complex, nor no FPU implementation.
 Too slow to calculate if we use DUInt recursive, there's some much faster algorithms with large accuracy.
-And, there is nice options in clang, gcc -msoft-float, we must choose them first.
+And, there is a nice options in clang, gcc -msoft-float, we must choose them first.
 This is another simpler implementation.
 
 # Tips
