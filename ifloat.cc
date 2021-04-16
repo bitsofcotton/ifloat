@@ -6,27 +6,18 @@
 #include <iostream>
 #include "ifloat.hh"
 
-typedef DUInt<uint64_t, 64> di_t;
-typedef DUInt<di_t,  128> di2_t;
-typedef DUInt<di2_t, 256> di3_t;
-typedef DUInt<di3_t, 512> di4_t;
-typedef DUInt<di4_t, 1024> di5_t;
-typedef DUInt<di5_t, 2048> di6_t;
-typedef DUInt<di6_t, 4096> di7_t;
-typedef DUInt<di7_t, 8192> di8_t;
-typedef Signed<DUInt<uint64_t, 64>, 128> i128_t;
-typedef SimpleFloat<uint32_t, uint64_t, 32, i128_t> fshort_t;
-typedef SimpleFloat<di7_t, di8_t, 8192, Signed<di7_t, 8192> > f_t;
+typedef SimpleFloat<uint32_t, uint64_t, 32, myint> fshort_t;
+typedef myfloat f_t;
 typedef f_t T;
-typedef Complex<T> U;
+typedef complex<T> U;
 
 int main() {
   for(int i = 1; i < 256; i ++)
     try {
-      i128_t   f(1);
+      myint    f(1);
       fshort_t ff(1);
       std::cout << i << " : 1 == " << ((f  << i) >> i) << std::endl;
-      std::cout << i << " : 1 == " << ((ff << (i128_t(1) << i)) >> (i128_t(1) << i)) << std::endl;
+      std::cout << i << " : 1 == " << ((ff << (myint(1) << i)) >> (myint(1) << i)) << std::endl;
     } catch(const char* e) {
       std::cout << e << std::endl;
     }

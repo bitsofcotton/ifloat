@@ -13,6 +13,8 @@ There's a little advantage to use this library when we met the condition exponen
     #include "ifloat.hh"
     ...
     typedef SimpleFloat<DUInt<uint64_t, 64>, DUInt<DUInt<uint64_t, 64>, 128>, 128, Signed<DUInt<uint64_t, 64>, 128> > float_t;
+    // or we can use compile with -D_FLOAT_BITS_=...
+    //   typedef myfloat float_t;
     ...
       ...
       auto pi(atan2(float_t(1), float_t(1)) * float_t(4));
@@ -31,3 +33,4 @@ We can't initialize SimpleFloat with float value, so please initialize with inte
 
 # Archive
 This repository is archived, so without bugreport, will no change.
+
