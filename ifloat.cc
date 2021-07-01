@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <map>
+#include <fstream>
 #include <sstream>
 #include <assert.h>
 #include "lieonn.hh"
