@@ -16,7 +16,7 @@ int main() {
       myint   f(1);
       myfloat ff(1);
       std::cout << i << " : 1 == " << ((f  << i) >> i) << std::endl;
-      std::cout << i << " : 1 == " << ((ff << (int64_t(1) << i)) >> (int64_t(1) << i)) << std::endl;
+      std::cout << i << " : 1 == " << ((ff << (myint(1) << i)) >> (myint(1) << i)) << std::endl;
     } catch(const char* e) {
       std::cout << e << std::endl;
     }
