@@ -13,8 +13,8 @@
 int main() {
   myuint test(0);
   test = ~ test;
-  for(int i = 1; i < _FLOAT_BITS_ * 2; i ++)
-    if(int(test >> i) && !(i < _FLOAT_BITS_)) 
+  for(int i = 0 ; bool(test); test >>= 1, i ++)
+    if(bool(test) && !(i < _FLOAT_BITS_)) 
       std::cerr << i << " : " << (test >> i) << std::endl;
   return 0;
 }

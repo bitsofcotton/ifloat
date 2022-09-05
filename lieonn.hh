@@ -433,14 +433,14 @@ public:
         s |= safeAdd(e, 1);
         U se(e);
         if(! safeAdd(se, - src.e) && se < U(bits))
-          m += src.m >> int(se);
+          m += se ? src.m >> int(se) : src.m;
       } else
         return *this = src + *this;
     } else {
       if(e > src.e) {
         U se(e);
         if(! safeAdd(se, - src.e) && se < U(bits))
-          m -= src.m >> int(se);
+          m -= se ? src.m >> int(se) : src.m;
       } else if(e == src.e) {
         if(m >= src.m)
           m -= src.m;
@@ -606,6 +606,7 @@ public:
   inline SimpleFloat<T,W,bits,U>  floor() const {
     if(uzero() <= e) return *this;
     if(e <= - U(bits)) return zero();
+    if(! e) return *this;
     auto deci(*this);
     deci.m >>= - int(deci.e);
     deci.m <<= - int(deci.e);
@@ -689,7 +690,7 @@ private:
     }
     const auto shift(tb - b - 1);
     assert(0 <= shift);
-    src <<= shift;
+    if(shift) src <<= shift;
     return - U(shift);
   }
   inline SimpleFloat<T,W,bits,U>& ensureFlag() {
