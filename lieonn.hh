@@ -606,7 +606,6 @@ public:
   inline SimpleFloat<T,W,bits,U>  floor() const {
     if(uzero() <= e) return *this;
     if(e <= - U(bits)) return zero();
-    if(! e) return *this;
     auto deci(*this);
     deci.m >>= - int(deci.e);
     deci.m <<= - int(deci.e);
@@ -1418,9 +1417,6 @@ template <typename T> static inline T ccot(const T& s) {
 template <typename T> using complex = Complex<T>;
 
 # if _FLOAT_BITS_ == 8
-  // XXX clang: we cannot class wrap uintN_t derived ones.
-  //            we need buggy of them because of uint32_t has 64 bit,
-  //            uint64_t has 128 bit registers in clang.
   typedef uint8_t myuint;
   typedef int8_t  myint;
   typedef SimpleFloat<myuint, uint16_t, 8, myint> myfloat;
