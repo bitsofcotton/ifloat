@@ -1417,9 +1417,9 @@ template <typename T> static inline T ccot(const T& s) {
 template <typename T> using complex = Complex<T>;
 
 # if _FLOAT_BITS_ == 8
-  // XXX clang: we cannot class wrap with uintN_t derived ones.
+  // XXX clang: we cannot class wrap uintN_t derived ones.
   //            we need buggy of them because of uint32_t has 64 bit,
-  //            uint64_t has 128 bit registers with clang.
+  //            uint64_t has 128 bit registers in clang.
   typedef uint8_t myuint;
   typedef int8_t  myint;
   typedef SimpleFloat<myuint, uint16_t, 8, myint> myfloat;
@@ -1436,7 +1436,7 @@ template <typename T> using complex = Complex<T>;
   typedef int64_t  myint;
   typedef SimpleFloat<myuint, unsigned __int128, 64, myint> myfloat;
 # elif _FLOAT_BITS_ == 128
-  typedef DUInt<uint64_t, uint64_t> uint128_t;
+  typedef DUInt<uint64_t, 64> uint128_t;
   typedef Signed<uint128_t, 128> int128_t;
   typedef uint128_t myuint;
   typedef int128_t  myint;
