@@ -388,7 +388,6 @@ template <typename T, int bits> std::ostream& operator << (std::ostream& os, Sig
   return os << dynamic_cast<const T&>(v);
 }
 
-
 // integer to integer float part.
 template <typename T, typename W, int bits, typename U> class SimpleFloat {
 public:
@@ -1418,6 +1417,9 @@ template <typename T> static inline T ccot(const T& s) {
 template <typename T> using complex = Complex<T>;
 
 # if _FLOAT_BITS_ == 8
+  // XXX clang: we cannot class wrap with uintN_t derived ones.
+  //            we need buggy of them because of uint32_t has 64 bit,
+  //            uint64_t has 128 bit registers with clang.
   typedef uint8_t myuint;
   typedef int8_t  myint;
   typedef SimpleFloat<myuint, uint16_t, 8, myint> myfloat;
@@ -1434,7 +1436,7 @@ template <typename T> using complex = Complex<T>;
   typedef int64_t  myint;
   typedef SimpleFloat<myuint, unsigned __int128, 64, myint> myfloat;
 # elif _FLOAT_BITS_ == 128
-  typedef DUInt<uint64_t, 64> uint128_t;
+  typedef DUInt<uint64_t, uint64_t> uint128_t;
   typedef Signed<uint128_t, 128> int128_t;
   typedef uint128_t myuint;
   typedef int128_t  myint;
@@ -2034,7 +2036,7 @@ template <typename T> inline T SimpleMatrix<T>::determinant(const bool& nonzero)
 }
 
 template <typename T> inline SimpleVector<T> SimpleMatrix<T>::solve(SimpleVector<T> other) const {
-  assert(0 <= entity.size() && 0 <= ecols && entity.size() == ecols && entity.size() == other.size());
+  if(! (0 <= entity.size() && 0 <= ecols && entity.size() == ecols && entity.size() == other.size()) ) throw "SimpleMatrix<T>::Solve error";
   auto work(*this);
   for(int i = 0; i < entity.size(); i ++) {
     int xchg = i;
@@ -2241,16 +2243,17 @@ template <typename T> inline SimpleVector<T> SimpleMatrix<T>::zeroFix(const Simp
   // sort by: |<Q^t(1), q_k>|, we subject to minimize each, to do this,
   //   maximize minimum q_k orthogonality.
   for(int i = 0, idx = 0; i < this->rows() - 1 && idx < fidx.size(); idx ++) {
-    if(T(int(0)) < fidx[idx].first &&
-       fidx[idx].first < sqrt(one.dot(one)) * epsilon()) {
-      *this = Pb;
-      break;
-    }
     const auto& iidx(fidx[idx].second);
     const auto  orth(this->col(iidx));
     const auto  n2(orth.dot(orth));
     if(n2 <= epsilon())
       continue;
+    if(T(int(0)) < fidx[idx].first &&
+       fidx[idx].first < sqrt(one.dot(one)) * epsilon()) {
+      *this = Pb;
+      break;
+    }
+    Pb = *this;
     // N.B. O(mn) can be writed into O(lg m + lg n) in many core cond.
 #if defined(_OPENMP)
 #pragma omp parallel for schedule(static, 1)
@@ -2485,7 +2488,7 @@ template <typename T> static inline SimpleMatrix<T> exp(const SimpleMatrix<T>& m
   auto res(m);
   res.I();
   for( ; p; ) {
-    if(p & myuint(1)) res *= mm;
+    if(bool(p & myuint(int(1)))) res *= mm;
     if(! (p >>= 1)) break;
     mm *= mm;
   }
@@ -2656,7 +2659,7 @@ template <typename T> static inline pair<SimpleVector<T>, T> makeProgramInvarian
 }
 
 template <typename T> static inline T revertProgramInvariant(const pair<T, T>& in) {
-  return max(T(int(0)), min(T(int(2)), abs(in.first * in.second))) - T(int(1));
+  return max(T(int(0)), min(T(int(2)), abs(in.first * in.second) )) - T(int(1));
 }
 
 template <typename T> class idFeeder {
